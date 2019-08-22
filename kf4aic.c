@@ -36,8 +36,11 @@
 #include "log.h"
 #include "protocol.h"
 #include "uefi_utils.h"
+#include "vbmeta_ias.h"
 
 #define SYSTEMD_BOOT_FILE L"loaderx64.efi"
+#define VBMETA_IAS_FILE   L"vbmeta.ias"
+#define ESP_PARTITION     L"EFI"
 
 EFI_STATUS load_and_start_efi(EFI_HANDLE image_handle, CHAR16 *efi_file)
 {
@@ -143,8 +146,18 @@ EFI_STATUS start_systemd_boot(EFI_HANDLE image_handle)
 EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *_table)
 {
 	EFI_STATUS ret;
+	BOOLEAN    verify_pass = FALSE;
+	CHAR16     *vbmeta_path = NULL;
 
 	InitializeLib(image, _table);
+
+	vbmeta_path = absolute_path(image, VBMETA_IAS_FILE);
+	// if secureboot is disabled, return always successful and verify_pass always true
+	ret = verify_vbmeta_ias(ESP_PARTITION, absolute_path(image, VBMETA_IAS_FILE), &verify_pass);
+	if (vbmeta_path != NULL)
+		FreePool(vbmeta_path);
+	if (EFI_ERROR(ret) || !verify_pass)
+		return ret;
 
 	ret = start_systemd_boot(image);
 	return ret;
