@@ -344,6 +344,24 @@ EFI_STATUS get_rot_data(IN VOID *bootimage, IN UINT8 boot_state,
         return ret;
 }
 
+EFI_STATUS init_rot_data(UINT32 boot_state, OUT struct rot_data_t *rot_data)
+{
+    /* Initialize the rot data structure */
+    rot_data->version = ROT_DATA_STRUCT_VERSION2;
+    rot_data->deviceLocked = 1;
+    rot_data->verifiedBootState = boot_state;
+
+    rot_data->osVersion = 0;
+    rot_data->patchMonthYear = 0;
+    rot_data->keySize = SHA256_DIGEST_LENGTH;
+
+    /* TBD: keyHash should be the key which used to sign vbmeta.ias */
+    memset(rot_data->keyHash256, 0, SHA256_DIGEST_LENGTH);
+
+    return EFI_SUCCESS;
+}
+
+
 /* vim: softtabstop=8:shiftwidth=8:expandtab
  */
 

@@ -547,5 +547,17 @@ LOCAL_CFLAGS := $(SHARED_CFLAGS)
 LOCAL_SRC_FILES := kf4aic.c
 LOCAL_MODULE_STEM := kf4aic
 
+LOCAL_OBJCOPY_FLAGS := -j .oemkeys
+
+LOCAL_C_INCLUDES += \
+	$(addprefix $(LOCAL_PATH)/,include/libkernelflinger) \
+	$(addprefix $(LOCAL_PATH)/,libsslsupport)
+LOCAL_C_INCLUDES += $(addprefix $(LOCAL_PATH)/,avb)
+
+ifeq ($(TARGET_USE_TRUSTY),true)
+    LOCAL_STATIC_LIBRARIES += libqltipc-$(TARGET_BUILD_VARIANT)
+endif
+LOCAL_STATIC_LIBRARIES += libavb_kernelflinger-$(TARGET_BUILD_VARIANT)
+
 include $(BUILD_EFI_EXECUTABLE) # For kf4aic-$(TARGET_BUILD_VARIANT)
 

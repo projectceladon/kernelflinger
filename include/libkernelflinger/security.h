@@ -99,6 +99,10 @@ EFI_STATUS get_rot_data(
         IN VBDATA *vb_data,
         OUT struct rot_data_t *rot_data);
 
+EFI_STATUS init_rot_data(
+        UINT32 boot_state,
+        OUT struct rot_data_t *rot_data);
+
 EFI_STATUS raw_pub_key_sha256(
         IN const UINT8 *pub_key,
         IN UINTN pub_key_len,
