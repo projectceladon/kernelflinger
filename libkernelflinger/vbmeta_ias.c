@@ -38,6 +38,7 @@
 #include "protocol.h"
 #include "gpt.h"
 #include "log.h"
+#include "vars.h"
 #include "security.h"
 
 #define IASIMAGE_MAX_SUB_IMAGE      32
@@ -58,23 +59,27 @@ typedef struct {                    // an IAS image generic header:
 	UINT32    headerCrc;        // CRC-32C over entire header
 } IASIMAGE_HEADER;
 
-#define IAS_EXT_HDR(h)              ((UINT32*) (((UINT64) (h)) + sizeof(IASIMAGE_HEADER)))
-#define IAS_PAYLOAD(h)              ((UINT32*) ((h)->dataOffset + ((UINT64) (h))))
+#define MAGIC_PATTERN               0x2E6B7069
+#define IAS_IMAGE_TYPE(it)          (((it) & 0xffff0000) >> 16)
+#define IAS_IMAGE_IS_SIGNED(it)     ((it) & 0x100)
+#define IAS_EXT_HDR(h)              ((UINTN) (h) + sizeof(IASIMAGE_HEADER))
+#define IAS_PAYLOAD(h)              ((UINTN) (h) + (h)->dataOffset)
+#define IAS_PAYLOAD_END(h)          (IAS_PAYLOAD(h) + (h)->dataLength + sizeof(UINT32))
 #define IAS_EXT_HDR_SIZE(h)         ((h)->dataOffset - sizeof(IASIMAGE_HEADER))
 #define ROUNDED_DOWN(val, align)    ((val) & ~((align) - 1))
 #define ROUNDED_UP(val, align)      ROUNDED_DOWN((val) + (align) - 1, (align))
-
+#define IAS_SIGNATURE(h)            (((UINTN)(h)) + ROUNDED_UP((h)->dataOffset + (h)->dataLength + sizeof(UINT32), 256))
 
 /*Obtain sub files from ias image*/
 static EFI_STATUS ias_get_sub_files(void *iasimage, UINT32 numImg,
 				    IASIMAGE_DATA *img, UINT32 *numFile)
 {
-	UINT32 *imgSize;
-	UINT32 *addr;
+	UINT32 *subFileSizeArray;
+	VOID *addr;
 	UINT32 index;
 	IASIMAGE_HEADER *header = (IASIMAGE_HEADER*)iasimage;
 
-	imgSize = IAS_EXT_HDR(header);
+	subFileSizeArray = (UINT32 *)IAS_EXT_HDR(header);
 	*numFile = IAS_EXT_HDR_SIZE (header) / sizeof (UINT32);
 
 	//Return error if num of sub files is not even, as filepath and filehash should exist as pair
@@ -83,12 +88,12 @@ static EFI_STATUS ias_get_sub_files(void *iasimage, UINT32 numImg,
 
 	if (numImg != 0) {
 		ZeroMem(img, numImg * sizeof(img[0]));
-		addr = IAS_PAYLOAD(header);
+		addr = (VOID *)IAS_PAYLOAD(header);
 
 		// If there are sub-images (Index.e NumFile > 0) return their addresses and sizes.
 		for (index = 0 ; index < numImg && index < *numFile ; index += 1) {
 			img[index].addr = addr;
-			img[index].size = imgSize[index];
+			img[index].size = subFileSizeArray[index];
 			addr = (UINT32 *) ((UINT8 *)addr + ROUNDED_UP(img[index].size, 4));
 		}
 	}
@@ -167,14 +172,94 @@ out:
 	return ret;
 }
 
-/*Signature check ias iamge*/
-static EFI_STATUS verify_ias_image(void *iasimage,BOOLEAN* verify_pass)
+static X509 *der_to_x509(CONST UINT8 *der, UINTN size)
 {
+	BIO *bio;
+	X509 *x509;
+
+	/* BIO is the OpenSSL input/output abstraction. Instantiate
+	* one using a memory buffer containing the certificate */
+	bio = BIO_new_mem_buf((void *)der, size);
+	if (!bio)
+		return NULL;
+
+	/* Obtain an x509 structure from the DER cert data */
+	x509 = d2i_X509_bio(bio, NULL);
+	BIO_free(bio);
+	return x509;
+}
+
+static EVP_PKEY *get_rsa_pubkey(X509 *cert)
+{
+	EVP_PKEY *pkey = X509_get_pubkey(cert);
+	if (!pkey)
+		return NULL;
+
+	if (EVP_PKEY_RSA != EVP_PKEY_type(pkey->type)) {
+	        EVP_PKEY_free(pkey);
+		return NULL;
+	}
+	return pkey;
+}
+
+/*Signature check ias iamge*/
+static EFI_STATUS verify_ias_image(void *iasimage, BOOLEAN* verify_pass)
+{
+	UINT8 *signature_data;
+	CHAR8 datahash[32] = {0};
+	UINT32 datalen = 0;
+	EVP_PKEY *pkey = NULL;
+	RSA *rsa;
+	EFI_STATUS ret;
+	int rsa_ret;
+
 	IASIMAGE_HEADER *header = (IASIMAGE_HEADER*)iasimage;
-	Print(L"iasimge->imageType = %x: verify ias image TBD\n", header->imageType);
+	if (header->magicPattern !=  MAGIC_PATTERN){
+		error(L"[IAS image] Check magic pattern fail\n");
+		return EFI_INVALID_PARAMETER;
+	}
+
+	if (IAS_IMAGE_TYPE(header->imageType)!= 0x4){
+		error(L"[IAS image] Check imageType fail\n");
+		return EFI_INVALID_PARAMETER;
+	}
+
 	//TBD
-	*verify_pass = TRUE;
-	return EFI_SUCCESS;
+	//CRC check
+
+	if (!IAS_IMAGE_IS_SIGNED(header->imageType)){
+		error(L"[IAS image] Image is unsigned\n");
+		return EFI_INVALID_PARAMETER;
+	}
+
+	signature_data = (UINT8*)IAS_SIGNATURE(header);
+	datalen = (UINTN)IAS_PAYLOAD_END(header) - (UINTN) header;
+
+	SHA256(iasimage, datalen, datahash);
+
+	X509 *cert = der_to_x509(oem_cert, oem_cert_size);
+	pkey = get_rsa_pubkey(cert);
+	if (!pkey)
+		return EFI_INVALID_PARAMETER;
+
+	rsa = EVP_PKEY_get1_RSA(pkey);
+	if (!rsa) {
+		ret = EFI_INVALID_PARAMETER;
+		goto free_pkey;
+	}
+
+	rsa_ret = RSA_verify(NID_sha256,
+                         datahash, 32, signature_data, 256, rsa);
+	if (rsa_ret == 1)
+		*verify_pass = TRUE;
+	else
+		*verify_pass = FALSE;
+
+	ret = EFI_SUCCESS;
+
+free_pkey:
+	EVP_PKEY_free(pkey);
+	return ret;
 }
 
 /*Verify vbmeta iasimage's integerity*/
