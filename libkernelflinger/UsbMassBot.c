@@ -82,7 +82,8 @@ UsbBotInit (
   // Allocate the BOT context for USB_BOT_PROTOCOL and two endpoint descriptors.
   //
   UsbBot = AllocateZeroPool (sizeof (USB_BOT_PROTOCOL) + 2 * sizeof (EFI_USB_ENDPOINT_DESCRIPTOR));
-  ASSERT (UsbBot != NULL);
+  if (UsbBot == NULL)
+    return EFI_OUT_OF_RESOURCES;
 
   UsbBot->UsbIo = UsbIo;
 
