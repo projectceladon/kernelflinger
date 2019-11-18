@@ -34,6 +34,7 @@
 #include <openssl/hmac.h>
 #include <openssl/rand.h>
 #include <openssl/sha.h>
+#include <openssl/crypto.h>
 #include "protocol/Mmc.h"
 #include "protocol/SdHostIo.h"
 #include "sdio.h"
@@ -144,13 +145,13 @@ EFI_STATUS get_rpmb_derived_key(OUT UINT8 **d_key, OUT UINT8 *number_d_key)
 void clear_rpmb_key(void)
 {
 	if (derived_key && number_derived_key) {
-		memset(derived_key, 0, number_derived_key * RPMB_KEY_SIZE);
+		OPENSSL_cleanse(derived_key, number_derived_key * RPMB_KEY_SIZE);
 		number_derived_key = 0;
 		FreePool(derived_key);
 		derived_key = NULL;
 	}
 
-	memset(rpmb_key, 0, RPMB_KEY_SIZE);
+	OPENSSL_cleanse(rpmb_key, RPMB_KEY_SIZE);
 }
 
 void set_rpmb_key(UINT8 *key)
@@ -644,7 +645,7 @@ static EFI_STATUS read_rpmb_keybox_magic_simulate(UINT16 offset, void *buffer)
 	debug(L"ret=%d", ret);
 	/*gpt not updated, force success*/
 	if (ret == EFI_NOT_FOUND) {
-		memset(buffer, 0, sizeof(uint32_t));
+		OPENSSL_cleanse(buffer, sizeof(uint32_t));
 		return EFI_SUCCESS;
 	}
 
@@ -723,7 +724,7 @@ EFI_STATUS rpmb_key_init(void)
 	error(L"Init RPMB key successfully");
 
 err_get_rpmb_key:
-	memset(key, 0, sizeof(key));
+	OPENSSL_cleanse(key, sizeof(key));
 
 	return ret;
 }

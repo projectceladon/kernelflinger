@@ -20,6 +20,7 @@
 #include "rpmb_storage.h"
 #include <aes_gcm.h>
 #include <keybox_provision.h>
+#include <openssl/crypto.h>
 
 static struct gcm_key attkb_key = {0};
 static encrypted_attkb_t enc_kb;
@@ -110,7 +111,7 @@ static EFI_STATUS write_attkb_data_real(UINT8 *start_kb_addr, UINTN write_sz)
 	data_addr = data_addr + (blk_cnt * RPMB_BLOCK_SIZE);
 
 	if (remain) {
-		memset(rpmb_buffer, 0, RPMB_BLOCK_SIZE);
+		OPENSSL_cleanse(rpmb_buffer, RPMB_BLOCK_SIZE);
 		memcpy(rpmb_buffer, data_addr, remain);
 		ret = write_rpmb_data(NULL, 1, blk_addr, data_addr, rpmb_key, &rpmb_result);
 		debug(L"ret=%d, rpmb_result=%d", ret, rpmb_result);
@@ -121,7 +122,7 @@ static EFI_STATUS write_attkb_data_real(UINT8 *start_kb_addr, UINTN write_sz)
 	}
 exit:
 	//clear the rpmb key
-	memset(rpmb_key, 0, sizeof(rpmb_key));
+	OPENSSL_cleanse(rpmb_key, sizeof(rpmb_key));
 #endif
 	return ret;
 }
@@ -190,8 +191,8 @@ EFI_STATUS flash_keybox(VOID *data, UINTN size)
 exit:
 	//clean up the keybox plaintext and encrypted data including metadata
 	//information before free the memory
-	memset(data, 0, size);
-	memset(start_kb_addr, 0, total_sz);
+	OPENSSL_cleanse(data, size);
+	OPENSSL_cleanse(start_kb_addr, total_sz);
 	FreePool(start_kb_addr);
 	return ret;
 }
