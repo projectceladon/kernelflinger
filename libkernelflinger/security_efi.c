@@ -140,6 +140,7 @@ EFI_STATUS get_seeds(IN UINT32 *num_seeds, OUT VOID *seed_list)
 		tmp = (seed_info_t *)seed_list;
 		tmp->svn = BOOTLOADER_SEED_MAX_ENTRIES - 1;
 		memcpy(tmp->seed, seed, TRUSTY_SEED_SIZE);  // Note: TRUSTY_SEED_SIZE = 32, but SECURITY_EFI_TRUSTY_SEED_LEN = 64
+		memset(seed, 0, sizeof(seed));
 	}
 #endif
 
