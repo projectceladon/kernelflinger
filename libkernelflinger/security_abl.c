@@ -137,6 +137,7 @@ out:
 		efi_perror(ret, L"Failed to generate the rpmb key");
 	}
 
+	memset(rpmb_key, 0, sizeof(rpmb_key));
 	return ret;
  }
 #else
