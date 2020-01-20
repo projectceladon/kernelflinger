@@ -35,10 +35,6 @@ SHARED_SRC_FILES := \
 	bootloader.c \
 	keybox_provision.c
 
-ifneq ($(strip $(TARGET_BOOTLOADER_POLICY)),)
-    SHARED_SRC_FILES += authenticated_action.c
-endif
-
 include $(CLEAR_VARS)
 
 LOCAL_MODULE := libfastboot-$(TARGET_BUILD_VARIANT)

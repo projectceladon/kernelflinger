@@ -464,9 +464,6 @@ static struct label_exception {
 #if defined(IOC_USE_SLCAN) || defined(IOC_USE_CBC)
 	{ L"ioc", flash_ioc },
 #endif
-#ifdef BOOTLOADER_POLICY
-	{ CONVERT_TO_WIDE(ACTION_AUTHORIZATION), authenticated_action },
-#endif
 #ifdef FASTBOOT_KEYBOX_PROVISION
 	{ L"keybox", flash_keybox }
 #endif

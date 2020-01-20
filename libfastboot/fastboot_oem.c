@@ -579,30 +579,6 @@ static void cmd_oem(INTN argc, CHAR8 **argv)
 	fastboot_run_cmd(cmdlist, (char *)argv[1], argc - 1, argv + 1);
 }
 
-#ifdef BOOTLOADER_POLICY
-#ifndef BOOTLOADER_POLICY_EFI_VAR
-#error "Fastboot EFI does not support Bootloader policy without EFI variables."
-#endif
-static void cmd_oem_get_action_nonce(INTN argc, __attribute__((__unused__)) CHAR8 **argv)
-{
-	char *nonce;
-
-	if (argc != 2) {
-		fastboot_fail("Invalid parameter");
-		return;
-	}
-
-	nonce = authenticated_action_new_nonce((char *)argv[1]);
-	if (!nonce) {
-		fastboot_fail("Failed to generate new nonce");
-		return;
-	}
-
-	fastboot_info_long_string(nonce, NULL);
-	fastboot_okay("");
-}
-#endif
-
 #ifdef USE_TPM
 #ifndef USER
 static void cmd_oem_tpm_show_index(INTN argc, __attribute__((__unused__)) CHAR8 **argv)
@@ -783,9 +759,6 @@ static struct fastboot_cmd COMMANDS[] = {
 #endif
 	{ "get-hashes",			LOCKED,		cmd_oem_gethashes  },
 	{ "get-provisioning-logs",	LOCKED,		cmd_oem_get_logs },
-#ifdef BOOTLOADER_POLICY
-	{ "get-action-nonce",		LOCKED,		cmd_oem_get_action_nonce },
-#endif
 #ifdef USE_TPM
 #ifndef USER
 	{ "tpm-show-index",		LOCKED,		cmd_oem_tpm_show_index },

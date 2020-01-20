@@ -83,15 +83,6 @@ ifneq ($(strip $(KERNELFLINGER_USE_UI)),false)
     KERNELFLINGER_CFLAGS += -DUSE_UI
 endif
 
-ifneq ($(strip $(TARGET_BOOTLOADER_POLICY)),)
-    KERNELFLINGER_CFLAGS += -DBOOTLOADER_POLICY=$(TARGET_BOOTLOADER_POLICY)
-    # Double negation to enforce the use of the EFI variable storage
-    # as the default behavior.
-    ifneq ($(strip $(TARGET_BOOTLOADER_POLICY_USE_EFI_VAR)),False)
-        KERNELFLINGER_CFLAGS += -DBOOTLOADER_POLICY_EFI_VAR
-    endif
-endif
-
 ifeq ($(KERNELFLINGER_OS_SECURE_BOOT),true)
     KERNELFLINGER_CFLAGS += -DOS_SECURE_BOOT
 endif

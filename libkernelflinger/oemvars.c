@@ -230,24 +230,8 @@ static EFI_STATUS parse_line(char *line, VOID *context)
 	}
 
 	if (!memcmp(&ctx->guid, &fastboot_guid, sizeof(ctx->guid))) {
-#ifdef BOOTLOADER_POLICY_EFI_VAR
-		UINTN i;
-
-		for (i = 0; i < FASTBOOT_SECURED_VARS_SIZE; i++)
-			if (!StrCmp((CHAR16 *)FASTBOOT_SECURED_VARS[i], varname))
-				break;
-
-		if (i == FASTBOOT_SECURED_VARS_SIZE) {
-			error(L"fastboot GUID is reserved for Kernelflinger use");
-			return EFI_ACCESS_DENIED;
-		}
-
-		if (!(attributes & EFI_VARIABLE_TIME_BASED_AUTHENTICATED_WRITE_ACCESS))
-			return EFI_ACCESS_DENIED;
-#else
 		error(L"fastboot GUID is reserved for Kernelflinger use");
 		return EFI_ACCESS_DENIED;
-#endif
 	}
 
 	debug(L"Setting oemvar: %a", var);

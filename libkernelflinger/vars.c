@@ -58,25 +58,9 @@
 #ifndef USER
 #define SLOT_FALLBACK		L"SlotFallback"
 #endif
-#ifdef BOOTLOADER_POLICY_EFI_VAR
-#define OVERRIDE_AUTHORIZATION_KEY	L"OAK"
-#define BOOTLOADER_POLICY_MASK		L"BPM"
-#endif
 #define ROLLBACK_INDEX_FMT		L"RollbackIndex_%04x"
 #define LOADED_SLOT		L"LoadedSlot"
 #define LOADED_SLOT_FAILED	L"LoadedSlotFailed_%04x"
-
-#ifdef BOOTLOADER_POLICY
-typedef union {
-	struct {
-		unsigned class_A : 1;
-		unsigned min_boot_state : 2;
-	};
-	UINT64 raw;
-} bpm_t;
-
-#define DEFAULT_BLPOLICY	0U
-#endif
 
 #define OEM_LOCK_UNLOCKED	(1 << 0)
 
@@ -92,11 +76,6 @@ const EFI_GUID fastboot_guid = { 0x1ac80a82, 0x4f0c, 0x456b,
 /* Gummiboot's GUID, we use some of the same variables */
 const EFI_GUID loader_guid = { 0x4a67b082, 0x0a4c, 0x41cf,
 	{0xb6, 0xc7, 0x44, 0x0b, 0x29, 0xbb, 0x8c, 0x4f} };
-
-#ifdef BOOTLOADER_POLICY_EFI_VAR
-const CHAR16 *FASTBOOT_SECURED_VARS[] = { OVERRIDE_AUTHORIZATION_KEY, BOOTLOADER_POLICY_MASK };
-const UINTN FASTBOOT_SECURED_VARS_SIZE = ARRAY_SIZE(FASTBOOT_SECURED_VARS);
-#endif
 
 static BOOLEAN provisioning_mode = FALSE;
 static enum device_state current_state = UNKNOWN_STATE;
@@ -425,13 +404,6 @@ EFI_STATUS erase_efivars(VOID)
 		if (memcmp(&loader_guid, &guid, sizeof(guid)) &&
 		    memcmp(&fastboot_guid, &guid, sizeof(guid)))
 			continue;
-
-#ifdef BOOTLOADER_POLICY_EFI_VAR
-		if (!memcmp(&guid, &fastboot_guid, sizeof(guid)))
-			for (i = 0; i < FASTBOOT_SECURED_VARS_SIZE; i++)
-				if (!StrCmp(FASTBOOT_SECURED_VARS[i], name))
-					goto skip;
-#endif	/* BOOTLOADER_POLICY_EFI_VAR */
 
 		for (i = 0; i < ARRAY_SIZE(EFIVAR_BLACK_LIST); i++) {
 			if (!StrCmp(EFIVAR_BLACK_LIST[i].name, name) &&
@@ -890,106 +862,6 @@ VOID del_reboot_reason()
 {
 	del_efi_variable(&loader_guid, REBOOT_REASON);
 }
-
-#ifdef BOOTLOADER_POLICY
-#ifdef BOOTLOADER_POLICY_EFI_VAR
-BOOLEAN blpolicy_is_flashed(VOID)
-{
-	EFI_STATUS ret;
-	UINTN size, i;
-	UINT32 flags;
-	VOID *data;
-
-	for (i = 0; i < FASTBOOT_SECURED_VARS_SIZE; i++) {
-		ret = get_efi_variable(&fastboot_guid, (CHAR16 *)FASTBOOT_SECURED_VARS[i],
-				       &size, (VOID **)&data, &flags);
-		if (EFI_ERROR(ret))
-			return FALSE;
-
-		FreePool(data);
-		if (!(flags & EFI_VARIABLE_TIME_BASED_AUTHENTICATED_WRITE_ACCESS))
-			return FALSE;
-	}
-
-	return TRUE;
-}
-
-static bpm_t get_bpm()
-{
-	EFI_STATUS ret;
-	UINTN size;
-	UINT32 flags;
-	UINT64 *bpm_data;
-	bpm_t bpm = { .raw = DEFAULT_BLPOLICY };
-
-	ret = get_efi_variable(&fastboot_guid, BOOTLOADER_POLICY_MASK,
-			       &size, (VOID **)&bpm_data, &flags);
-	if (EFI_ERROR(ret))
-		goto out;
-
-	if (size != sizeof(bpm) ||
-	    !(flags & EFI_VARIABLE_TIME_BASED_AUTHENTICATED_WRITE_ACCESS)) {
-		FreePool(bpm_data);
-		goto out;
-	}
-
-	bpm.raw = *bpm_data;
-	FreePool(bpm_data);
-
-out:
-	return bpm;
-}
-
-EFI_STATUS get_oak_hash(unsigned char **data_p, UINTN *size)
-{
-	EFI_STATUS ret;
-	UINT32 flags;
-	VOID *data;
-
-	ret = get_efi_variable(&fastboot_guid, OVERRIDE_AUTHORIZATION_KEY,
-			       size, (VOID **)&data, &flags);
-	if (EFI_ERROR(ret)) {
-		efi_perror(ret, L"Failed to read %s EFI variable",
-			   OVERRIDE_AUTHORIZATION_KEY);
-		return ret;
-	}
-
-	if (!(flags & EFI_VARIABLE_TIME_BASED_AUTHENTICATED_WRITE_ACCESS)) {
-		FreePool(data);
-		return EFI_SECURITY_VIOLATION;
-	}
-
-	*data_p = data;
-
-	return EFI_SUCCESS;
-}
-
-#else  // BOOTLOADER_POLICY_EFI_VAR
-static bpm_t get_bpm()
-{
-	bpm_t bpm = { .raw = BOOTLOADER_POLICY };
-	return bpm;
-}
-#endif	/* BOOTLOADER_POLICY_EFI_VAR */
-
-BOOLEAN device_is_class_A(VOID)
-{
-	return get_bpm().class_A != 0;
-}
-
-UINT8 min_boot_state_policy()
-{
-	switch (get_bpm().min_boot_state) {
-	case 1:
-		return BOOT_STATE_ORANGE;
-	case 2:
-		return BOOT_STATE_YELLOW;
-	case 3:
-		return BOOT_STATE_GREEN;
-	}
-	return BOOT_STATE_RED;
-}
-#endif	/* BOOTLOADER_POLICY */
 
 BOOLEAN is_UEFI(VOID)
 {

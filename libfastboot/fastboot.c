@@ -110,9 +110,6 @@ static const UINTN MAX_DLSIZE = 256 * 1024 * 1024;
 
 #ifndef FASTBOOT_FOR_NON_ANDROID
 static const char *flash_locked_whitelist[] = {
-#ifdef BOOTLOADER_POLICY
-	ACTION_AUTHORIZATION,
-#endif
 	NULL
 };
 #endif

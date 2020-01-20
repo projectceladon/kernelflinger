@@ -1112,10 +1112,6 @@ BOOLEAN no_device_unlock()
 #ifdef NO_DEVICE_UNLOCK
 	return TRUE;
 #else
-#ifdef BOOTLOADER_POLICY
-	if (device_is_class_A())
-                return TRUE;
-#endif
 	return FALSE;
 #endif
 }
@@ -1125,9 +1121,6 @@ UINT8 min_boot_state()
 #ifdef NO_DEVICE_UNLOCK
 	return BOOT_STATE_GREEN;
 #else
-#ifdef BOOTLOADER_POLICY
-	return min_boot_state_policy();
-#endif
 	return BOOT_STATE_RED;
 #endif
 }

@@ -41,15 +41,6 @@ extern const EFI_GUID loader_guid;
 
 extern const EFI_GUID fastboot_guid;
 
-#ifdef BOOTLOADER_POLICY_EFI_VAR
-/* FASTBOOT GUID is reserved to internal use only.  However, the
- * following array of EFI variables is the exception and these
- * variables can be flashed using the flash oemvars fastboot command.
- * These variables are time-based authenticated EFI variables.  */
-extern const CHAR16 *FASTBOOT_SECURED_VARS[];
-extern const UINTN FASTBOOT_SECURED_VARS_SIZE;
-#endif
-
 /* TODO get rid of the rest of these _VAR definitions here and write
  * accessor functions for them */
 
@@ -158,12 +149,6 @@ EFI_STATUS set_reboot_reason(CHAR16 *reboot_reason);
 CHAR16 *get_reboot_reason();
 BOOLEAN is_reboot_reason(CHAR16 *reason);
 VOID del_reboot_reason();
-#ifdef BOOTLOADER_POLICY
-BOOLEAN blpolicy_is_flashed(VOID);
-BOOLEAN device_is_class_A(VOID);
-UINT8 min_boot_state_policy();
-EFI_STATUS get_oak_hash(unsigned char **data_p, UINTN *size);
-#endif  // BOOTLOADER_POLICY
 
 #if defined(SECURE_STORAGE_EFIVAR) && defined(USE_AVB)
 EFI_STATUS read_efi_rollback_index(UINTN rollback_index_slot, uint64_t* out_rollback_index);

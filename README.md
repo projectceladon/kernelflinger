@@ -85,8 +85,6 @@ Kerneflinger specific configuration flags:
 * `TARGET_NO_DEVICE_UNLOCK`: if true, any attempt to unlock the device
   (`fastboot flashing unlock`) will systematically fail.
 * `HAL_AUTODETECT`: Cf. [Autodetect](./doc/autodetect.md).
-* `TARGET_BOOTLOADER_POLICY`:
-  Cf. [Bootloader Policy and Factory Reset Protection](./doc/FRP.md)
 * `KERNELFLINGER_ALLOW_UNSUPPORTED_ACPI_TABLE`: makes kernelflinger
    ignore ACPI table oem\_id, oem\_table\_id and revision fields.
 * `KERNELFLINGER_USE_POWER_BUTTON`: makes kernelflinger use the power
@@ -104,11 +102,7 @@ Kerneflinger specific configuration flags:
    setting the bootreason.
 * `KERNELFLINGER_SSL_LIBRARY`: either 'openssl' or 'boringssl', makes
    Kernelflinger build against the OpenSSL library, respectively, the
-   BoringSSL library.  Note: the `TARGET_BOOTLOADER_POLICY` flag
-   cannot be used if `KERNELFLINGER_SSL_LIBRARY` is set to 'boringssl'
-   because the BoringSSL does not support the PKCS7 message format
-   which is used by the RMA force unlock feature
-   (Cf. [Bootloader Policy and Factory Reset Protection](./doc/FRP.md)).
+   BoringSSL library. 
 * `BOARD_AVB_ENABLE`: support AVB (Android Verify Boot)
 * `BOARD_SLOT_AB_ENABLE`: support AVB A/B slot.
 * `KERNELFLINGER_USE_RPMB`: support use RPMB, it can be used by Trusty,
