@@ -73,6 +73,8 @@ LOCAL_CFLAGS += -Ibionic/libc/kernel/uapi
 LOCAL_CFLAGS += -Ibionic/libc/kernel/uapi/asm-x86
 LOCAL_CFLAGS += -Ibionic/libc/kernel/android/uapi
 LOCAL_CFLAGS += -D_LIBCPP_BUILDING_LIBRARY
+
+LOCAL_ASFLAGS += -Werror=format-security -Wa,--noexecstack
 include $(BUILD_EFI_STATIC_LIBRARY)
 
 #######################################
