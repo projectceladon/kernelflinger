@@ -157,6 +157,7 @@ EFI_STATUS identify_boot_device(enum storage_type filter)
 	PCI_DEVICE_PATH new_boot_device = { .Function = -1, .Device = -1 };
 	enum storage_type new_boot_device_type;
 	struct storage *new_storage;
+	CHAR16 *dps;
 
 	new_storage = NULL;
 	ret = uefi_call_wrapper(BS->LocateHandleBuffer, 5, ByProtocol,
@@ -165,7 +166,6 @@ EFI_STATUS identify_boot_device(enum storage_type filter)
 		efi_perror(ret, L"Failed to locate Block IO Protocol");
 		return ret;
 	}
-
 	new_boot_device.Header.Type = 0;
 	for (i = 0; i < nb_handle; i++) {
 		device_path = DevicePathFromHandle(handles[i]);
@@ -178,7 +178,7 @@ EFI_STATUS identify_boot_device(enum storage_type filter)
 
 		if (is_same_device(device_path, exclude_device))
 			continue;
-
+		dps = DevicePathToStr((EFI_DEVICE_PATH *)pci);
 		if (new_boot_device.Function == pci->Function &&
 				new_boot_device.Device == pci->Device &&
 				new_boot_device.Header.Type == pci->Header.Type &&
@@ -189,16 +189,18 @@ EFI_STATUS identify_boot_device(enum storage_type filter)
 		if (EFI_ERROR(ret))
 			continue;
 
-		if (!new_boot_device.Header.Type || new_boot_device_type >= type) {
+		if (!new_boot_device.Header.Type || new_boot_device_type > type) {
 				memcpy(&new_boot_device, pci, sizeof(new_boot_device));
 				new_boot_device_type = type;
 				new_storage = storage;
 				new_boot_device_handle = handles[i];
+				debug(L"%s Loop storage selected", dps);
 			continue;
+			//break;
 		}
 
 		if (new_boot_device_type == type &&
-				type != STORAGE_GENERAL_BLOCK &&
+				type != STORAGE_GENERAL_BLOCK && type != STORAGE_NVME &&
 				filter > type) {
 			error(L"Multiple identifcal storage found! Can't make a decision");
 			new_storage = NULL;
@@ -219,7 +221,7 @@ EFI_STATUS identify_boot_device(enum storage_type filter)
 	boot_device_handle = new_boot_device_handle;
 	memcpy(&boot_device, &new_boot_device, sizeof(new_boot_device));
 
-	debug(L"%s storage selected", cur_storage->name);
+	debug(L"[%s storage selected]", dps);
 	return EFI_SUCCESS;
 }
 
