@@ -383,6 +383,26 @@ EFI_STATUS refresh_current_state(void)
 	return EFI_SUCCESS;
 }
 
+BOOLEAN check_device_init_state(void)
+{
+#ifndef USE_TPM
+	UINT8 stored_state;
+#endif
+
+	if (is_live_boot())
+		return TRUE;
+
+#ifdef USE_TPM
+	return tpm2_get_bootloader_init_state();
+#else
+	if (EFI_NOT_FOUND == read_device_state_efi(&stored_state)) {
+		return FALSE;
+	}
+
+	return TRUE;
+#endif
+}
+
 #ifndef USER
 EFI_STATUS reprovision_state_vars(VOID)
 {

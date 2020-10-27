@@ -114,6 +114,8 @@ BOOLEAN get_oemvars_update(void);
 EFI_STATUS set_oemvars_update(BOOLEAN updated);
 BOOLEAN get_slot_fallback(void);
 EFI_STATUS set_slot_fallback(BOOLEAN enabled);
+/* return TRUE on device initialize, FALSE on un-initialize */
+BOOLEAN check_device_init_state(void);
 
 enum device_state {
 	UNKNOWN_STATE = -1,
