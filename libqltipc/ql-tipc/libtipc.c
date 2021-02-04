@@ -35,8 +35,13 @@ typedef uintptr_t vaddr_t;
 
 static struct trusty_ipc_dev* _ipc_dev;
 static struct trusty_dev _tdev; /* There should only be one trusty device */
+static void* rpmb_ctx;
 
 void trusty_ipc_shutdown(void) {
+    (void)rpmb_storage_proxy_shutdown(_ipc_dev);
+    (void)rpmb_storage_put_ctx(rpmb_ctx);
+
+    (void)avb_tipc_shutdown(_ipc_dev);
     (void)km_tipc_shutdown(_ipc_dev);
 
     /* shutdown Trusty IPC device */
@@ -58,10 +63,28 @@ int trusty_ipc_init(void) {
 
     /* create Trusty IPC device */
     trusty_info("Initializing Trusty IPC device\n");
-    rc = trusty_ipc_dev_create(&_ipc_dev, &_tdev,
-                               TRUSTY_QL_TIPC_MAX_BUFFER_LEN);
+    rc = trusty_ipc_dev_create(&_ipc_dev, &_tdev, PAGE_SIZE);
     if (rc != 0) {
         trusty_error("Initializing Trusty IPC device failed (%d)\n", rc);
+        return rc;
+    }
+
+    /* get storage rpmb */
+    rpmb_ctx = rpmb_storage_get_ctx();
+
+    /* start secure storage proxy service */
+    trusty_info("Initializing RPMB storage proxy service\n");
+    rc = rpmb_storage_proxy_init(_ipc_dev, rpmb_ctx);
+    if (rc != 0) {
+        trusty_error("Initlializing RPMB storage proxy service failed (%d)\n",
+                     rc);
+        return rc;
+    }
+
+    trusty_info("Initializing Trusty AVB client\n");
+    rc = avb_tipc_init(_ipc_dev);
+    if (rc != 0) {
+        trusty_error("Initlializing Trusty AVB client failed (%d)\n", rc);
         return rc;
     }
 

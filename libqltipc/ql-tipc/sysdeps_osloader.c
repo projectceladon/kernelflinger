@@ -30,6 +30,9 @@
 
 #define UNUSED(x) (void)(x)
 
+extern int trusty_encode_page_info(struct ns_mem_page_info *page_info,
+                                   void *vaddr);
+
 void trusty_lock(struct trusty_dev *dev)
 {
     UNUSED(dev);
@@ -49,7 +52,7 @@ void trusty_local_irq_restore(unsigned long *state)
     UNUSED(state);
 }
 
-void trusty_idle(struct trusty_dev *dev, bool event_poll)
+void trusty_idle(struct trusty_dev *dev)
 {
     /* ToDo */
     UNUSED(dev);
@@ -73,7 +76,7 @@ void trusty_printf(const char *format, ...)
     FreePool(format16);
 }
 
-void *trusty_memcpy(void *dest, const void *src, size_t n)
+void *trusty_memcpy(void *dest, void *src, size_t n)
 {
     EFI_STATUS ret;
     ret = memcpy_s(dest, n, src, n);
@@ -108,18 +111,15 @@ void trusty_free(void *addr)
         FreePool(addr);
 }
 
-void *trusty_alloc_pages(unsigned count)
+void *trusty_membuf_alloc_page_aligned(struct ns_mem_page_info *page_info, size_t size)
 {
     void *pa = NULL;
+    int res;
     EFI_STATUS ret;
     EFI_PHYSICAL_ADDRESS Memory = 0XFFFFFFFF;
 
-    ret = uefi_call_wrapper(BS->AllocatePages,
-                            4,
-                            AllocateMaxAddress,
-                            EfiLoaderData,
-                            EFI_SIZE_TO_PAGES(count * PAGE_SIZE),
-                            &Memory);
+    ret = uefi_call_wrapper(BS->AllocatePages, 4, AllocateMaxAddress,
+                                            EfiLoaderData, EFI_SIZE_TO_PAGES(size), &Memory);
     if (EFI_ERROR(ret)) {
         trusty_printf("alloc page failed\n");
         return NULL;
@@ -127,15 +127,16 @@ void *trusty_alloc_pages(unsigned count)
 
     /* get memory attibutes */
     pa = (VOID *)(UINTN)Memory;
-
+    res = trusty_encode_page_info(page_info, pa);
+    if (res) {
+        trusty_membuf_free_page_aligned(pa, size);
+        return NULL;
+    }
     return pa;
 }
 
-void trusty_free_pages(void *va, unsigned count)
+void trusty_membuf_free_page_aligned(void *pa, size_t size)
 {
-    if (va)
-        uefi_call_wrapper(BS->FreePages,
-                          2,
-                          (EFI_PHYSICAL_ADDRESS)(UINTN)va,
-                          EFI_SIZE_TO_PAGES(count * PAGE_SIZE));
+    if (pa)
+        uefi_call_wrapper(BS->FreePages, 2, (EFI_PHYSICAL_ADDRESS)(UINTN)pa, EFI_SIZE_TO_PAGES(size));
 }
