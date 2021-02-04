@@ -42,12 +42,12 @@ const char* trusty_basename(const char* str);
  * This has no effect unless TIPC_ENABLE_DEBUG is defined.
  */
 #ifdef TIPC_ENABLE_DEBUG
-#define trusty_assert(expr)                           \
-    do {                                              \
-        if (!(expr)) {                                \
-            trusty_fatal("assert fail: " #expr "\n"); \
-        }                                             \
-    } while (0)
+#define trusty_assert(expr)                     \
+  do {                                          \
+    if (!(expr)) {                              \
+      trusty_fatal("assert fail: " #expr "\n"); \
+    }                                           \
+  } while(0)
 #else
 #define trusty_assert(expr)
 #endif
@@ -58,14 +58,16 @@ const char* trusty_basename(const char* str);
  * This has no effect unless TIPC_ENABLE_DEBUG and LOCAL_LOG is defined.
  */
 #ifdef TIPC_ENABLE_DEBUG
-#define trusty_debug(message, ...)                                    \
-    do {                                                              \
-        if (LOCAL_LOG) {                                              \
-            trusty_printf(trusty_basename(__FILE__));                 \
-            trusty_printf(":" TRUSTY_TO_STRING(__LINE__) ": DEBUG "); \
-            trusty_printf(message, ##__VA_ARGS__);                    \
-        }                                                             \
-    } while (0)
+#define trusty_debug(message, ...)                              \
+  do {                                                          \
+    if (LOCAL_LOG) {                                            \
+      trusty_printf("%a:" TRUSTY_TO_STRING(__LINE__)            \
+                    ": DEBUG "                                  \
+                    message,                                    \
+                    trusty_basename(__FILE__),                  \
+                    ##__VA_ARGS__);                             \
+    }                                                           \
+  } while(0)
 #else
 #define trusty_debug(message, ...)
 #endif
@@ -73,32 +75,39 @@ const char* trusty_basename(const char* str);
 /*
  * Prints info message.
  */
-#define trusty_info(message, ...)                 \
-    do {                                          \
-        trusty_printf(trusty_basename(__FILE__)); \
-        trusty_printf(": INFO ");                 \
-        trusty_printf(message, ##__VA_ARGS__);    \
-    } while (0)
+#define trusty_info(message, ...)             \
+  do {                                        \
+    if (LOCAL_LOG) {                          \
+        trusty_printf("%a: INFO "             \
+                  message,                    \
+                  trusty_basename(__FILE__),  \
+                  ##__VA_ARGS__);             \
+    }                                         \
+  } while(0)
 
 /*
  * Prints error message.
  */
-#define trusty_error(message, ...)                                \
-    do {                                                          \
-        trusty_printf(trusty_basename(__FILE__));                 \
-        trusty_printf(":" TRUSTY_TO_STRING(__LINE__) ": ERROR "); \
-        trusty_printf(message, ##__VA_ARGS__);                    \
-    } while (0)
+#define trusty_error(message, ...)                            \
+  do {                                                        \
+    trusty_printf("%a:" TRUSTY_TO_STRING(__LINE__)            \
+                  ": ERROR "                                  \
+                  message,                                    \
+                  trusty_basename(__FILE__),                  \
+                  ##__VA_ARGS__);                             \
+  } while(0)
 
 /*
  * Prints message and calls trusty_abort.
  */
-#define trusty_fatal(message, ...)                                \
-    do {                                                          \
-        trusty_printf(trusty_basename(__FILE__));                 \
-        trusty_printf(":" TRUSTY_TO_STRING(__LINE__) ": FATAL "); \
-        trusty_printf(message, ##__VA_ARGS__);                    \
-        trusty_abort();                                           \
-    } while (0)
+#define trusty_fatal(message, ...)                             \
+  do {                                                         \
+    trusty_printf("%a:" TRUSTY_TO_STRING(__LINE__)             \
+                  ": FATAL "                                   \
+                  message,                                     \
+                  trusty_basename(__FILE__),                   \
+                  ##__VA_ARGS__);                              \
+    trusty_abort();                                            \
+  } while(0)
 
 #endif /* TRUSTY_UTIL_H_ */

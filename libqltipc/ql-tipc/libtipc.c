@@ -23,20 +23,21 @@
  */
 
 #include <trusty/avb.h>
-#include <trusty/keymaster.h>
-#include <trusty/rpmb.h>
 #include <trusty/trusty_dev.h>
 #include <trusty/trusty_ipc.h>
 #include <trusty/util.h>
+#include <trusty/keymaster.h>
+#include "storage.h"
 
 #define LOCAL_LOG 0
+#define TRUSTY_QL_TIPC_MAX_BUFFER_LEN PAGE_SIZE
 
-typedef uintptr_t vaddr_t;
-
-static struct trusty_ipc_dev* _ipc_dev;
+static struct trusty_ipc_dev *_ipc_dev;
 static struct trusty_dev _tdev; /* There should only be one trusty device */
 
-void trusty_ipc_shutdown(void) {
+void trusty_ipc_shutdown(void)
+{
+    (void)avb_tipc_shutdown(_ipc_dev);
     (void)km_tipc_shutdown(_ipc_dev);
 
     /* shutdown Trusty IPC device */
@@ -46,8 +47,10 @@ void trusty_ipc_shutdown(void) {
     (void)trusty_dev_shutdown(&_tdev);
 }
 
-int trusty_ipc_init(void) {
-    int rc;
+int trusty_ipc_init(void)
+{
+    int rc = 0;
+
     /* init Trusty device */
     trusty_info("Initializing Trusty device\n");
     rc = trusty_dev_init(&_tdev, NULL);
@@ -65,10 +68,21 @@ int trusty_ipc_init(void) {
         return rc;
     }
 
+    /*
+    trusty_info("Initializing Trusty AVB client\n");
+    rc = avb_tipc_init(_ipc_dev);
+    if (rc != 0) {
+        trusty_error("Initlializing Trusty AVB client failed (%d)\n", rc);
+        return rc;
+    }
+    */
+
     trusty_info("Initializing Trusty Keymaster client\n");
     rc = km_tipc_init(_ipc_dev);
     if (rc != 0) {
+#ifndef USER
         trusty_error("Initlializing Trusty Keymaster client failed (%d)\n", rc);
+#endif
         return rc;
     }
 

@@ -17,7 +17,6 @@ LOCAL_STATIC_LIBRARIES := \
 
 LOCAL_C_INCLUDES := $(KERNELFLINGER_LOCAL_PATH) \
                     $(LOCAL_PATH)/include \
-                    $(LOCAL_PATH)/arch/x86 \
                     $(LOCAL_PATH)/../interface/include \
                     $(KERNELFLINGER_LOCAL_PATH)/libsslsupport \
                     $(KERNELFLINGER_LOCAL_PATH)/avb
@@ -27,10 +26,9 @@ LOCAL_SRC_FILES := \
 	ipc_dev.c \
 	libtipc.c \
 	avb.c \
-	trusty_dev_common.c \
 	arch/x86/trusty_dev.c \
 	arch/x86/trusty_mem.c \
-	arch/x86/sysdeps_osloader.c \
+	sysdeps_osloader.c \
 	util.c \
 	keymaster.c \
 	keymaster_serializable.c \
