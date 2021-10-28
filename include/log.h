@@ -48,7 +48,7 @@ void vlog(const CHAR16 *fmt, va_list args);
 #ifdef USER
 #define DEBUG_MESSAGES 0
 #else
-#define DEBUG_MESSAGES 1
+#define DEBUG_MESSAGES 0
 #endif
 #endif
 

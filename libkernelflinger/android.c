@@ -1282,7 +1282,7 @@ static void setup_screen_info_from_gop(struct screen_info *pinfo)
         pinfo->lfb_height = gop->Mode->Info->VerticalResolution;
         pinfo->lfb_linelength = gop->Mode->Info->PixelsPerScanLine * 4;
 }
-
+uint64_t tt_tsc=0;
 static EFI_STATUS handover_kernel(CHAR8 *bootimage, EFI_HANDLE parent_image)
 {
         EFI_PHYSICAL_ADDRESS kernel_start;
@@ -1298,7 +1298,7 @@ static EFI_STATUS handover_kernel(CHAR8 *bootimage, EFI_HANDLE parent_image)
         UINT32 koffset;
         size_t setup_header_size;
         size_t setup_header_end;
-
+	uint64_t tick;
         aosp_header = (struct boot_img_hdr *)bootimage;
         buf = get_boot_param_hdr(bootimage);
         setup_sectors = buf->hdr.setup_secs;
@@ -1351,6 +1351,10 @@ static EFI_STATUS handover_kernel(CHAR8 *bootimage, EFI_HANDLE parent_image)
 #ifndef USER
         warning(L"Jump to Android Linux kernel now\n");
 #endif
+	error(L"Jump to kernel time stamp = %u", boottime_in_msec());
+	tick = __RDTSC();
+        error(L"tsc = %llu", tick);
+	error(L"total tsc consumed by kernelflinger = %llu", tick-tt_tsc);
         /* Free UI resources. */
         ui_free();
 
