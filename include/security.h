@@ -67,17 +67,21 @@ struct rot_data_t{
           * For example, version 6.0.1 would be represented as 060001;
         */
         UINT32 osVersion;
-        /* The month and year of the last patch as an integer in the format,
-          * YYYYMM, where YYYY is a four-digit year and MM is a two-digit month.
-          * For example, April 2016 would be represented as 201604.
+        /* The day, month and year of the last patch as an integer in the format,
+          * YYYYMMDD, where YYYY is a four-digit year and MM is a two-digit month,
+          * DD is a two-digit day. For example, April 1, 2016 would be represented
+          * 20160401.
         */
-        UINT32 patchMonthYear;
+        UINT32 patchMonthYearDay;
         /* A secure hash (SHA-256 recommended by Google) of the key used to verify the system image
           * key_size (in bytes) is zero: denotes no key provided by Bootloader. When key_size is
           * 32, it denotes,key_hash256 is available. Other values not defined now.
         */
         UINT32 keySize;
         UINT8  keyHash256[SHA256_DIGEST_LENGTH];
+
+        UINT32 digestSize;
+        UINT8  vbmetaDigest[AVB_SHA512_DIGEST_SIZE];
 } ;
 
 /* Update the struct rot_data for startup_information */

@@ -298,13 +298,13 @@ int km_tipc_init(struct trusty_ipc_dev *dev)
 
     /* sent the ROT information to trusty */
     rc = trusty_set_boot_params(p_rot_data->osVersion,
-                p_rot_data->patchMonthYear,
+                p_rot_data->patchMonthYearDay,
                 p_rot_data->verifiedBootState,
                 p_rot_data->deviceLocked,
                 p_rot_data->keyHash256,
                 p_rot_data->keySize,
-                NULL,
-                0);
+                p_rot_data->vbmetaDigest,
+                p_rot_data->digestSize);
 
     if (rc != KM_ERROR_OK && rc != KM_ERROR_ROOT_OF_TRUST_ALREADY_SET) {
         trusty_error("set boot_params has failed( %d )\n", rc);

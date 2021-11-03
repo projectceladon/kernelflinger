@@ -131,9 +131,16 @@ EFI_STATUS update_rot_data(IN VOID *bootimage, IN UINT8 boot_state,
                         return EFI_UNSUPPORTED;
         }
         rot_data.verifiedBootState = boot_state;
+
         temp_version.value = boot_image_header->os_version;
+        if (boot_image_header->header_version == BOOT_HEADER_V3) {
+                struct boot_img_hdr_v3 *boot_hdr = (struct boot_img_hdr_v3 *)bootimage;
+                temp_version.value = boot_hdr->os_version;
+        }
         rot_data.osVersion = (temp_version.split.version_A * 100 + temp_version.split.version_B) * 100 + temp_version.split.version_C;
-        rot_data.patchMonthYear = (temp_version.split.year + 2000) * 100 + temp_version.split.month;
+        /* VTS require the patchlevel's format should be YYYYMMDD, but the patch level's format in boot header */
+        /* is YYYYMM. We set the DD value to a fixed value of 1. */
+        rot_data.patchMonthYearDay = ((temp_version.split.year + 2000) * 100 + temp_version.split.month) * 100 + 1;
         rot_data.keySize = SHA256_DIGEST_LENGTH;
 
         if (vb_data) {
@@ -142,9 +149,44 @@ EFI_STATUS update_rot_data(IN VOID *bootimage, IN UINT8 boot_state,
                         efi_perror(ret, L"Failed to compute key hash");
                         return ret;
                 }
-                CopyMem(rot_data.keyHash256, temp_hash, rot_data.keySize);
+                if (state == LOCKED) {
+                        CopyMem(rot_data.keyHash256, temp_hash, rot_data.keySize);
+                } else {
+                        memset_s(rot_data.keyHash256, SHA256_DIGEST_LENGTH, 0, SHA256_DIGEST_LENGTH);
+                        barrier();
+                }
+
+                AvbVBMetaImageHeader h;
+                UINT8* vbmeta_data = vb_data->vbmeta_images[0].vbmeta_data;
+                avb_vbmeta_image_header_to_host_byte_order((const AvbVBMetaImageHeader*)vbmeta_data, &h);
+
+                switch (h.algorithm_type) {
+                        /* Explicit fallthrough. */
+                        case AVB_ALGORITHM_TYPE_NONE:
+                        case AVB_ALGORITHM_TYPE_SHA256_RSA2048:
+                        case AVB_ALGORITHM_TYPE_SHA256_RSA4096:
+                        case AVB_ALGORITHM_TYPE_SHA256_RSA8192:
+                                avb_slot_verify_data_calculate_vbmeta_digest(
+                                                vb_data, AVB_DIGEST_TYPE_SHA256, rot_data.vbmetaDigest);
+                                rot_data.digestSize= AVB_SHA256_DIGEST_SIZE;
+                                break;
+                                /* Explicit fallthrough. */
+                        case AVB_ALGORITHM_TYPE_SHA512_RSA2048:
+                        case AVB_ALGORITHM_TYPE_SHA512_RSA4096:
+                        case AVB_ALGORITHM_TYPE_SHA512_RSA8192:
+                                avb_slot_verify_data_calculate_vbmeta_digest(
+                                                vb_data, AVB_DIGEST_TYPE_SHA512, rot_data.vbmetaDigest);
+                                rot_data.digestSize = AVB_SHA512_DIGEST_SIZE;
+                                break;
+                        default:
+                                debug(L"Unknown digest type");
+                                return EFI_UNSUPPORTED;
+                                break;
+                }
+
         } else {
                 memset_s(rot_data.keyHash256, SHA256_DIGEST_LENGTH, 0, SHA256_DIGEST_LENGTH);
+                memset_s(rot_data.vbmetaDigest, AVB_SHA512_DIGEST_SIZE, 0, AVB_SHA512_DIGEST_SIZE);
                 barrier();
         }
         return ret;
@@ -159,7 +201,7 @@ EFI_STATUS init_rot_data(UINT32 boot_state)
     rot_data.verifiedBootState = boot_state;
 
     rot_data.osVersion = 0;
-    rot_data.patchMonthYear = 0;
+    rot_data.patchMonthYearDay = 0;
     rot_data.keySize = SHA256_DIGEST_LENGTH;
 
     /* TBD: keyHash should be the key which used to sign vbmeta.ias */
@@ -175,5 +217,5 @@ struct rot_data_t* get_rot_data()
 }
 
 /* vim: softtabstop=8:shiftwidth=8:expandtab
- */
+*/
 
