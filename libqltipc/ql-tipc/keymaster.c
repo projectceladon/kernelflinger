@@ -311,6 +311,14 @@ int km_tipc_init(struct trusty_ipc_dev *dev)
         return TRUSTY_ERR_GENERIC;
     }
 
+    /* sent the boot_patchlevel information to trusty */
+    rc = trusty_config_boot_patchlevel(p_rot_data->patchMonthYearDay);
+
+    if (rc != KM_ERROR_OK) {
+        trusty_error("config boot_patchlevel has failed( %d )\n", rc);
+        return TRUSTY_ERR_GENERIC;
+    }
+
     return TRUSTY_ERR_NONE;
 }
 
@@ -352,6 +360,28 @@ int trusty_set_boot_params(uint32_t os_version, uint32_t os_patchlevel,
         goto end;
     }
     rc = km_do_tipc(KM_SET_BOOT_PARAMS, req, req_size, NULL, NULL);
+
+end:
+    if (req) {
+        trusty_free(req);
+    }
+    return rc;
+}
+
+int trusty_config_boot_patchlevel(uint32_t boot_patchlevel)
+{
+    struct km_boot_patchlevel params = {
+        .boot_patchlevel = boot_patchlevel
+    };
+    uint8_t *req = NULL;
+    uint32_t req_size = 0;
+    int rc = km_boot_patchlevel_serialize(&params, &req, &req_size);
+
+    if (rc < 0) {
+        trusty_error("failed (%d) to serialize request\n", rc);
+        goto end;
+    }
+    rc = km_do_tipc(KM_CONFIGURE_BOOT_PATCHLEVEL, req, req_size, NULL, NULL);
 
 end:
     if (req) {

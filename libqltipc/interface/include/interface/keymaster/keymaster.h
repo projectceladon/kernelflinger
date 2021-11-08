@@ -56,7 +56,8 @@ enum keymaster_command {
 	KM_SET_BOOT_PARAMS               = (0x1000 << KEYMASTER_REQ_SHIFT),
 	KM_PROVISION_KEYBOX              = (0x1001 << KEYMASTER_REQ_SHIFT),
 	KM_SET_ATTESTATION_KEY           = (0x2000 << KEYMASTER_REQ_SHIFT),
-	KM_APPEND_ATTESTATION_CERT_CHAIN = (0x3000 << KEYMASTER_REQ_SHIFT)
+	KM_APPEND_ATTESTATION_CERT_CHAIN = (0x3000 << KEYMASTER_REQ_SHIFT),
+	KM_CONFIGURE_BOOT_PATCHLEVEL     = (0xd0000 << KEYMASTER_REQ_SHIFT)
 };
 
 typedef enum {
@@ -218,6 +219,16 @@ struct km_boot_params {
     uint32_t verified_boot_hash_size;
     const uint8_t* verified_boot_hash;
 } TRUSTY_ATTR_PACKED;
+
+/**
+ * km_boot_patchlevel - request format for KM_SET_BOOT_PARAMS.
+ *
+ * @boot_patchlevel: boot patch level from Android image header
+ */
+struct km_boot_patchlevel {
+    uint32_t boot_patchlevel;
+} TRUSTY_ATTR_PACKED;
+
 
 /**
  * km_attestation_data - request format for KM_SET_ATTESTION_KEY.

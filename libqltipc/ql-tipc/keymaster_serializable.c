@@ -76,6 +76,23 @@ int km_boot_params_serialize(const struct km_boot_params *params, uint8_t** out,
     return TRUSTY_ERR_NONE;
 }
 
+int km_boot_patchlevel_serialize(const struct km_boot_patchlevel *params, uint8_t** out,
+                             uint32_t *out_size)
+{
+    if (!out || !params || !out_size) {
+        return TRUSTY_ERR_INVALID_ARGS;
+    }
+    *out_size = (sizeof(params->boot_patchlevel));
+    *out = trusty_calloc(*out_size, 1);
+    if (!*out) {
+        return TRUSTY_ERR_NO_MEMORY;
+    }
+    
+    append_uint32_to_buf(*out, params->boot_patchlevel);
+
+    return TRUSTY_ERR_NONE;
+}
+
 int km_attestation_data_serialize(const struct km_attestation_data *data,
                                  uint8_t** out, uint32_t *out_size)
 {

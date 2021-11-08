@@ -65,6 +65,13 @@ int trusty_set_boot_params(uint32_t os_version, uint32_t os_patchlevel,
                            uint32_t verified_boot_hash_size);
 
 /*
+ * Config Keymaster boot patchlevel. Returns one of trusty_err.
+ *
+ * @boot_patchlevel: Boot patch level from Android image header
+ */
+int trusty_config_boot_patchlevel(uint32_t boot_patchlevel);
+
+/*
  * Set Keymaster attestation key. Returns one of trusty_err.
  *
  * @key: buffer containing key
