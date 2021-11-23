@@ -133,7 +133,7 @@ EFI_STATUS update_rot_data(IN VOID *bootimage, IN UINT8 boot_state,
         rot_data.verifiedBootState = boot_state;
 
         temp_version.value = boot_image_header->os_version;
-        if (boot_image_header->header_version == BOOT_HEADER_V3) {
+        if (boot_image_header->header_version >= BOOT_HEADER_V3) {
                 struct boot_img_hdr_v3 *boot_hdr = (struct boot_img_hdr_v3 *)bootimage;
                 temp_version.value = boot_hdr->os_version;
         }

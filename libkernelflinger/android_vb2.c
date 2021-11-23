@@ -295,7 +295,7 @@ EFI_STATUS android_install_acpi_table_avb(AvbSlotVerifyData *slot_data)
         android_query_image_from_avb_result(slot_data, "boot", &image);
         if (image != NULL) {
                 hdr = (struct boot_img_hdr *)image;
-                if ((hdr->header_version > 1) && (hdr->acpi_size > 0)) {
+                if ((hdr->header_version == 2) && (hdr->acpi_size > 0)) {
                         VOID *acpi_addr = image +
                                 pagealign(hdr, hdr->kernel_size) +
                                 pagealign(hdr, hdr->ramdisk_size) +

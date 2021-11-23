@@ -59,6 +59,7 @@
 #endif
 
 #include "uefi_utils.h"
+#include "libxbc.h"
 
 #define OS_INITIATED L"os_initiated"
 
@@ -540,7 +541,7 @@ static struct boot_params *get_boot_param_hdr (VOID *bootimage)
     return (struct boot_params *)(bootimage + hdr_size);
 }
 
-static EFI_STATUS setup_ramdisk(UINT8 *bootimage, UINT8 *vendorbootimage)
+static EFI_STATUS setup_ramdisk(UINT8 *bootimage, UINT8 *vendorbootimage, UINT8 *androidcmd)
 {
         struct boot_img_hdr *aosp_header;
         struct boot_params *bp;
@@ -572,7 +573,7 @@ static EFI_STATUS setup_ramdisk(UINT8 *bootimage, UINT8 *vendorbootimage)
                     return EFI_OUT_OF_RESOURCES;
             }
             ret = memcpy_s((VOID *)(UINTN)ramdisk_addr, rsize, bootimage + roffset, rsize);
-        } else { // boot image v3
+        } else if (aosp_header->header_version == BOOT_HEADER_V3) { // boot image v3
             struct vendor_boot_img_hdr_v3 *vendor_hdr = (struct vendor_boot_img_hdr_v3 *)vendorbootimage;
             struct boot_img_hdr_v3 *boot_hdr = (struct boot_img_hdr_v3 *)bootimage;
 
@@ -590,25 +591,100 @@ static EFI_STATUS setup_ramdisk(UINT8 *bootimage, UINT8 *vendorbootimage)
 
             if ((UINTN)ramdisk_addr > bp->hdr.ramdisk_max) {
                 error(L"Ramdisk address is too high!");
-                efree(ramdisk_addr, rsize);
-                return EFI_OUT_OF_RESOURCES;
+                ret = EFI_OUT_OF_RESOURCES;
+                goto out;
             }
             ret = memcpy_s((VOID *)(UINTN)ramdisk_addr, rsize,
                             vendorbootimage + BOOT_IMG_HEADER_SIZE_V3,
                             vendor_hdr->vendor_ramdisk_size);
             if (EFI_ERROR(ret))
-                    return ret;
+                    goto out;
 
 
             ret = memcpy_s((VOID *)(UINTN)ramdisk_addr + vendor_hdr->vendor_ramdisk_size,
                             rsize, bootimage + roffset, boot_hdr->ramdisk_size);
-        }
+            if (EFI_ERROR(ret))
+                    goto out;
+        } else { // boot image v4
+            struct vendor_boot_img_hdr_v4 *vendor_hdr = (struct vendor_boot_img_hdr_v4 *)vendorbootimage;
+            struct boot_img_hdr_v4 *boot_hdr = (struct boot_img_hdr_v4 *)bootimage;
 
-        if (EFI_ERROR(ret))
+            UINT32 page_size = vendor_hdr->page_size;
+            UINT32 vendor_ramdisk_offset = ALIGN(sizeof(struct vendor_boot_img_hdr_v4), page_size);
+
+            UINT32 androidcmd_size = 0;
+            if (androidcmd != NULL)
+                    androidcmd_size = strlen(androidcmd) + 1;
+
+            UINT32 bootconfig_offset = ALIGN(sizeof(struct vendor_boot_img_hdr_v4), page_size) +
+                            ALIGN(vendor_hdr->vendor_ramdisk_size, page_size) +
+                            ALIGN(vendor_hdr->dtb_size, page_size) +
+                            ALIGN(vendor_hdr->vendor_ramdisk_table_size, page_size);
+            UINT32 rboffset = vendor_hdr->vendor_ramdisk_size + boot_hdr->ramdisk_size;
+
+            roffset = BOOT_IMG_HEADER_SIZE_V4 + ALIGN(boot_hdr->kernel_size, BOOT_IMG_HEADER_SIZE_V4);
+            rsize = boot_hdr->ramdisk_size
+                        + vendor_hdr->vendor_ramdisk_size
+                        + vendor_hdr->bootconfig_size
+                        + androidcmd_size
+                        + BOOTCONFIG_TRAILER_SIZE;
+            if (!rsize) {
+                debug(L"boot image has no ramdisk");
+                return EFI_SUCCESS; // no ramdisk, so nothing to do
+            }
+
+            bp->hdr.ramdisk_len = rsize;
+            ret = emalloc(rsize, 0x1000, &ramdisk_addr, FALSE);
+            if (EFI_ERROR(ret))
                 return ret;
+
+            if ((UINTN)ramdisk_addr > bp->hdr.ramdisk_max) {
+                error(L"Ramdisk address is too high!");
+                ret = EFI_OUT_OF_RESOURCES;
+                goto out;
+            }
+
+            ret = memcpy_s((VOID *)(UINTN)ramdisk_addr, rsize,
+                            vendorbootimage + vendor_ramdisk_offset,
+                            vendor_hdr->vendor_ramdisk_size);
+            if (EFI_ERROR(ret))
+                    goto out;
+
+
+            ret = memcpy_s((VOID *)(UINTN)ramdisk_addr + vendor_hdr->vendor_ramdisk_size,
+                            rsize, bootimage + roffset, boot_hdr->ramdisk_size);
+            if (EFI_ERROR(ret))
+                    goto out;
+
+
+            ret = memcpy_s((VOID *)(UINTN)ramdisk_addr + rboffset,
+                            rsize, vendorbootimage + bootconfig_offset,
+                            vendor_hdr->bootconfig_size);
+            if (EFI_ERROR(ret))
+                    goto out;
+
+            if (androidcmd != NULL) {
+                    ret = addBootConfigParameters(androidcmd, androidcmd_size,
+                                    (UINTN)ramdisk_addr + rboffset, vendor_hdr->bootconfig_size);
+                    if (ret < 0) {
+                            ret = EFI_INVALID_PARAMETER;
+                            goto out;
+                    }
+            } else {
+                    ret = addBootConfigTrailer((UINTN)ramdisk_addr + rboffset, vendor_hdr->bootconfig_size);
+                    if (ret < 0) {
+                            ret = EFI_INVALID_PARAMETER;
+                            goto out;
+                    }
+            }
+        }
 
         bp->hdr.ramdisk_start = (UINT32)(UINTN)ramdisk_addr;
         return EFI_SUCCESS;
+
+out:
+        efree(ramdisk_addr, rsize);
+        return ret;
 }
 
 
@@ -622,7 +698,7 @@ EFI_STATUS setup_acpi_table(VOID *bootimage,
         aosp_header = (struct boot_img_hdr *)bootimage;
 
 #ifdef USE_ACPIO
-        if (aosp_header->header_version >= 1) {
+        if (aosp_header->header_version >= 1 && aosp_header->header_version < BOOT_HEADER_V3) {
                 VOID *acpio;
                 acpio = bootimage + aosp_header->recovery_acpio_offset;
                 ret = install_acpi_table_from_recovery_acpio(acpio);
@@ -1003,6 +1079,54 @@ static EFI_STATUS add_bootvars(VOID *bootimage, CHAR16 **cmdline16)
 }
 #endif
 
+static EFI_STATUS classify_cmd_parameters(
+                IN UINT8 *cmd_conf,
+                OUT UINT8 *androidcmd,
+                OUT UINT8 *kernelcmd
+                )
+{
+        CHAR8 *savedPtr, *token = NULL;
+        CHAR8 *tempChar;
+        char delim = ' ';
+        UINT32 cmdCount = 0;
+        UINT32 confCount = 0;
+
+        if (cmd_conf == NULL || androidcmd == NULL || kernelcmd == NULL)
+                return EFI_INVALID_PARAMETER;
+
+        tempChar = cmd_conf;
+        while(*tempChar == ' ')
+                tempChar += 1;
+        token = (CHAR8 *)strtok_r((char *)tempChar, &delim, (char **)&savedPtr);
+
+        while (token != NULL) {
+                if (strncmp(token, "androidboot", strlen("androidboot")) == 0) {
+                        memcpy_s(androidcmd + confCount, strlen(token), token, strlen(token));
+                        confCount += strlen(token);
+                        /* In bootconfig, a config value cannot be empty. If so, we need to set
+                         * its value to the default value of "unknown"
+                         * */
+                        if (androidcmd[confCount - 1] == '=') {
+                                memcpy_s(androidcmd + confCount, 7, "unknown", 7);
+                                confCount += 7;
+                        }
+                        androidcmd[confCount] = '\n';
+                        confCount += 1;
+                } else {
+                        memcpy_s(kernelcmd + cmdCount, strlen(token), token, strlen(token));
+                        cmdCount += strlen(token);
+                        kernelcmd[cmdCount] = ' ';
+                        cmdCount += 1;
+                }
+                token = (CHAR8 *)strtok_r(NULL, &delim, (char **)&savedPtr);
+        }
+
+        androidcmd[confCount - 1] = '\0';
+        kernelcmd[confCount - 1] = '\0';
+
+        return EFI_SUCCESS;
+}
+
 
 /* when we call setup_command_line in EFI, parameter is EFI_GUID *swap_guid.
  * when we call setup_command_line in NON EFI, parameter is const CHAR8 *abl_cmd_line.
@@ -1013,7 +1137,8 @@ static EFI_STATUS setup_command_line(
                 IN enum boot_target boot_target,
                 IN void *parameter,
                 IN UINT8 boot_state,
-                IN VBDATA *vb_data
+                IN VBDATA *vb_data,
+                OUT UINT8 **androidcmd
                 )
 {
         CHAR16 *cmdline16 = NULL;
@@ -1023,6 +1148,7 @@ static EFI_STATUS setup_command_line(
 
         EFI_PHYSICAL_ADDRESS cmdline_addr;
         CHAR8 *cmdline;
+        CHAR8 *cmd_conf= NULL;
         UINTN cmdlen;
         UINTN cmdsize;
         UINTN vb_cmdlen = 0;
@@ -1169,9 +1295,11 @@ static EFI_STATUS setup_command_line(
         if (EFI_ERROR(ret))
                 goto out;
 
-        ret = add_bootvars(bootimage, &cmdline16);
-        if (EFI_ERROR(ret))
-                goto out;
+        if (aosp_header->header_version < BOOT_HEADER_V3) {
+                ret = add_bootvars(bootimage, &cmdline16);
+                if (EFI_ERROR(ret))
+                        goto out;
+        }
 #endif
 
         ret = prepend_slot_command_line(&cmdline16, boot_target, vb_data);
@@ -1190,23 +1318,61 @@ static EFI_STATUS setup_command_line(
         if(boot_target != MEMORY)
                 vb_cmdlen = get_vb_cmdlen(vb_data);
 
+        cmdlen = StrLen(cmdline16);
+        if (is_uefi) {
+            cmdsize = cmdlen + 1 + vb_cmdlen + 1;
+        } else {
+            cmdsize = cmdlen + vb_cmdlen + abl_cmd_len + 256;
+        }
+
+        cmd_conf = AllocatePool(cmdsize);
+        if (cmd_conf == NULL) {
+                ret = EFI_OUT_OF_RESOURCES;
+                goto out;
+        }
+
+        ret = str_to_stra(cmd_conf, cmdline16, cmdlen + 1);
+        if (EFI_ERROR(ret)) {
+                error(L"Non-ascii characters in command line");
+                goto out;
+        }
+
+        if (vb_cmdlen > 0) {
+                char *vb_cmdline;
+                vb_cmdline = get_vb_cmdline(vb_data);
+                cmd_conf[cmdlen] = ' ';
+                ret = memcpy_s(cmd_conf + cmdlen + 1, vb_cmdlen, vb_cmdline, vb_cmdlen);
+                if (EFI_ERROR(ret)) {
+                        goto out;
+                }
+                cmdlen += vb_cmdlen + 1;
+                cmd_conf[cmdlen] = 0;
+        }
+
+        /* append command line from ABL */
+        if (abl_cmd_len > 0)
+        {
+                cmd_conf[cmdlen] = ' ';
+                ret = memcpy_s(cmd_conf + cmdlen + 1, abl_cmd_len + 1, abl_cmd_line, abl_cmd_len + 1);
+                if (EFI_ERROR(ret)) {
+                        goto out;
+                }
+                cmdlen += abl_cmd_len + 1;
+                cmd_conf[cmdlen] = '\0';
+        }
+
         if (is_uefi) {
             /* Documentation/x86/boot.txt: "The kernel command line can be located
              * anywhere between the end of the setup heap and 0xA0000" */
             cmdline_addr = 0xA0000;
 
-            cmdlen = StrLen(cmdline16);
-            cmdsize = cmdlen + 1 + vb_cmdlen + 1;
             ret = allocate_pages(AllocateMaxAddress, EfiLoaderData,
                                  EFI_SIZE_TO_PAGES(cmdsize),
                                  &cmdline_addr);
-            if (EFI_ERROR(ret))
+            if (EFI_ERROR(ret)) {
                     goto out;
+            }
         } else {
-        /*TBD- unify cmdline buffer allocation in ABL with UEFI */
-            cmdlen = StrLen(cmdline16);
-            /* +256: for extra cmd line*/
-            cmdsize = cmdlen + vb_cmdlen + abl_cmd_len + 256;
             cmdline_addr = (EFI_PHYSICAL_ADDRESS)((UINTN)AllocatePool(cmdsize));
             if (cmdline_addr == 0) {
                     ret = EFI_OUT_OF_RESOURCES;
@@ -1215,44 +1381,36 @@ static EFI_STATUS setup_command_line(
         }
 
         cmdline = (CHAR8 *)(UINTN)cmdline_addr;
-        ret = str_to_stra(cmdline, cmdline16, cmdlen + 1);
+
+        if (aosp_header->header_version <= BOOT_HEADER_V3) {
+                ret = memcpy_s(cmdline, cmdsize, cmd_conf, cmdsize);
+        } else {
+                if (androidcmd == NULL) {
+                        ret = EFI_INVALID_PARAMETER;
+                        goto out;
+                }
+                *androidcmd= AllocatePool(cmdsize);
+                if (*androidcmd == NULL) {
+                        ret = EFI_OUT_OF_RESOURCES;
+                        goto out;
+                }
+
+                ret = classify_cmd_parameters(cmd_conf, *androidcmd, cmdline);
+        }
+
         if (EFI_ERROR(ret)) {
-                error(L"Non-ascii characters in command line");
                 free_pages(cmdline_addr, EFI_SIZE_TO_PAGES(cmdsize));
                 goto out;
-        }
-
-        if (vb_cmdlen > 0) {
-                char *vb_cmdline;
-                vb_cmdline = get_vb_cmdline(vb_data);
-                cmdline[cmdlen] = ' ';
-                ret = memcpy_s(cmdline + cmdlen + 1, cmdsize, vb_cmdline, vb_cmdlen);
-                if (EFI_ERROR(ret)) {
-                        free_pages(cmdline_addr, EFI_SIZE_TO_PAGES(cmdsize));
-                        goto out;
-                }
-                cmdlen += vb_cmdlen + 1;
-                cmdline[cmdlen] = 0;
-        }
-
-        /* append command line from ABL */
-        if (abl_cmd_len > 0)
-        {
-                cmdline[cmdlen] = ' ';
-                ret = memcpy_s(cmdline + cmdlen + 1, abl_cmd_len + 1, abl_cmd_line, abl_cmd_len + 1);
-                if (EFI_ERROR(ret)) {
-                        free_pages(cmdline_addr, EFI_SIZE_TO_PAGES(cmdsize));
-                        goto out;
-                }
-                cmdlen += abl_cmd_len + 1;
-                cmdline[cmdlen] = 0;
         }
 
         buf = get_boot_param_hdr(bootimage);
         buf->hdr.cmd_line_ptr = (UINT32)(UINTN)cmdline;
         ret = EFI_SUCCESS;
 out:
-        FreePool(cmdline16);
+        if (cmdline16)
+                FreePool(cmdline16);
+        if (cmd_conf)
+                FreePool(cmd_conf);
         if (serialport)
                 FreePool(serialport);
         if (time_str16)
@@ -1613,6 +1771,7 @@ EFI_STATUS android_image_start_buffer(
         struct boot_img_hdr *aosp_header;
         struct boot_params *buf;
         void *parameter = NULL;
+        UINT8 *androidcmd= NULL;
         EFI_STATUS ret;
         BOOLEAN use_ramdisk = TRUE;
         if (!bootimage)
@@ -1661,25 +1820,32 @@ EFI_STATUS android_image_start_buffer(
                      boot_target,
                      parameter,
                      boot_state,
-                     vb_data
+                     vb_data,
+                     &androidcmd
                      );
 
 
         if (EFI_ERROR(ret)) {
                 efi_perror(ret, L"setup_command_line");
+                if (androidcmd != NULL)
+                        FreePool(androidcmd);
                 return ret;
         }
 #ifndef DYNAMIC_PARTITIONS
         use_ramdisk = !recovery_in_boot_partition() || boot_target == RECOVERY || boot_target == MEMORY;
 #endif
         if (use_ramdisk) {
-                ret = setup_ramdisk(bootimage, vendorbootimage);
+                ret = setup_ramdisk(bootimage, vendorbootimage, androidcmd);
                 if (EFI_ERROR(ret)) {
                         efi_perror(ret, L"setup_ramdisk");
+                        if (androidcmd != NULL)
+                                FreePool(androidcmd);
                         goto out_cmdline;
                 }
         }
 
+        if (androidcmd != NULL)
+                FreePool(androidcmd);
         debug(L"Loading the kernel");
         ret = handover_kernel(bootimage, parent_image);
         efi_perror(ret, L"handover_kernel");

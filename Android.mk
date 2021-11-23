@@ -240,7 +240,8 @@ LOCAL_STATIC_LIBRARIES := \
 	libefiusb-$(TARGET_BUILD_VARIANT) \
 	libefitcp-$(TARGET_BUILD_VARIANT) \
 	libtransport-$(TARGET_BUILD_VARIANT) \
-	libheci-$(TARGET_BUILD_VARIANT)
+	libheci-$(TARGET_BUILD_VARIANT) \
+	libxbc-$(TARGET_BUILD_VARIANT)
 
 ifeq ($(TARGET_USE_TRUSTY),true)
     LOCAL_STATIC_LIBRARIES += libqltipc-$(TARGET_BUILD_VARIANT)
@@ -269,7 +270,8 @@ LOCAL_STATIC_LIBRARIES += libavb_kernelflinger-$(TARGET_BUILD_VARIANT)
 
 LOCAL_C_INCLUDES += \
 	$(addprefix $(LOCAL_PATH)/,libkernelflinger) \
-	$(addprefix $(LOCAL_PATH)/,libsslsupport)
+	$(addprefix $(LOCAL_PATH)/,libsslsupport) \
+	$(addprefix $(LOCAL_PATH)/,libxbc)
 include $(BUILD_EFI_EXECUTABLE)  # For kernelflinger-$(TARGET_BUILD_VARIANT)
 
 
@@ -278,7 +280,8 @@ LOCAL_MODULE := installer-$(TARGET_BUILD_VARIANT)
 LOCAL_STATIC_LIBRARIES := \
 	$(SHARED_STATIC_LIBRARIES) \
 	libtransport-$(TARGET_BUILD_VARIANT) \
-	libfastboot-for-installer-$(TARGET_BUILD_VARIANT)
+	libfastboot-for-installer-$(TARGET_BUILD_VARIANT) \
+	libxbc-$(TARGET_BUILD_VARIANT)
 
 ifeq ($(TARGET_USE_TPM),true)
 	SHARED_STATIC_LIBRARIES += libedk2_tpm
@@ -290,7 +293,8 @@ LOCAL_MODULE_STEM := installer
 LOCAL_C_INCLUDES := \
 	$(addprefix $(LOCAL_PATH)/,libfastboot) \
 	$(addprefix $(LOCAL_PATH)/,libsslsupport) \
-	$(addprefix $(LOCAL_PATH)/,libkernelflinger)
+	$(addprefix $(LOCAL_PATH)/,libkernelflinger) \
+	$(addprefix $(LOCAL_PATH)/,libxbc)
 
 kfins_intermediates := $(call intermediates-dir-for,EFI,kernelflingerins)
 
