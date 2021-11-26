@@ -594,7 +594,7 @@ static void installer_flash_cmd(INTN argc, CHAR8 **argv)
 	for (int i = 0; i <  num; i++)
 		numname[i] = NULL;
 
-	if (argc > 4) {
+	if (argc > 3) {
 		argc = 2;
 		for (int i = 0; i <  num; i++) {
 			numname[i] = stra_to_str(argv[i+2]);
