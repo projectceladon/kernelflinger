@@ -1148,7 +1148,12 @@ static VOID boot_error(enum ux_error_code error_code, UINT8 boot_state,
 #endif
 	}
 #ifdef USE_UI
-	bt = ux_prompt_user(error_code, power_off, boot_state, hash, hash_size);
+	if (error_code != SECURE_BOOT_CODE){
+		bt = ux_prompt_user(error_code, power_off, boot_state, hash, hash_size);
+	}
+	else{
+		bt = NORMAL_BOOT;
+	}
 
 	if (bt == CRASHMODE) {
 		debug(L"Rebooting to bootloader recover mode");
@@ -1182,9 +1187,6 @@ EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table)
 	/* gnu-efi initialization */
 	InitializeLib(image, sys_table);
 
-#ifdef USE_UI
-	ux_display_vendor_splash();
-#endif
 
 	debug(KERNELFLINGER_VERSION);
 
