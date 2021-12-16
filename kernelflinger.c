@@ -946,6 +946,12 @@ static EFI_STATUS load_image(VOID *bootimage, VOID *vendorbootimage, UINT8 boot_
 			die();
 		}
 
+                ret = update_attestation_ids(vendorbootimage);
+                if (EFI_ERROR(ret)) {
+                        efi_perror(ret, L"Unable to get the attestation ids for trusty");
+                        die();
+                }
+
 		set_boottime_stamp(TM_LOAD_TOS_DONE);
 		ret = start_trusty(tosimage);
 		if (EFI_ERROR(ret)) {

@@ -57,6 +57,7 @@ enum keymaster_command {
 	KM_PROVISION_KEYBOX              = (0x1001 << KEYMASTER_REQ_SHIFT),
 	KM_SET_ATTESTATION_KEY           = (0x2000 << KEYMASTER_REQ_SHIFT),
 	KM_APPEND_ATTESTATION_CERT_CHAIN = (0x3000 << KEYMASTER_REQ_SHIFT),
+	KM_SET_ATTESTATION_IDS           = (0xc000 << KEYMASTER_REQ_SHIFT),
 	KM_CONFIGURE_BOOT_PATCHLEVEL     = (0xd0000 << KEYMASTER_REQ_SHIFT)
 };
 
@@ -229,6 +230,44 @@ struct km_boot_patchlevel {
     uint32_t boot_patchlevel;
 } TRUSTY_ATTR_PACKED;
 
+/**
+ * km_attestation_ids - request format for KM_SET_ATTESTATION_IDS.
+ *
+ * @brand_size: size of brand
+ * @brand: brand from vendor boot header
+ * @device_size: size of device
+ * @device: device from vendor boot header
+ * @product_size: size of name
+ * @product: name from vendor boot header
+ * @serial_size: size of serial
+ * @serial: serial number from DMI
+ * @imei_size: size of imei
+ * @imei: imei information
+ * @meid_size: size of meid
+ * @meid: meid information
+ * @manufacturer_size: size of manufacturer
+ * @manufacturer: manufacturer from vendor boot header
+ * @model_size: size of model
+ * @model: model from vendor boot header
+ */
+struct km_attestation_ids {
+    uint32_t brand_size;
+    const uint8_t *brand;
+    uint32_t device_size;
+    const uint8_t *device;
+    uint32_t product_size;
+    const uint8_t *product;
+    uint32_t serial_size;
+    const uint8_t *serial;
+    uint32_t imei_size;
+    const uint8_t *imei;
+    uint32_t meid_size;
+    const uint8_t *meid;
+    uint32_t manufacturer_size;
+    const uint8_t *manufacturer;
+    uint32_t model_size;
+    const uint8_t *model;
+} TRUSTY_ATTR_PACKED;
 
 /**
  * km_attestation_data - request format for KM_SET_ATTESTION_KEY.

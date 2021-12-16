@@ -43,8 +43,9 @@
 #define BOOT_TARGET_SIZE         32
 #define BOOT_SIGNATURE_MAX_SIZE  4096
 #define ROT_DATA_STRUCT_VERSION2 0x02
+#define ATTESTATION_ID_MAX_LENGTH 64
 
-#define SETUP_MODE_VAR	        L"SetupMode"
+#define SETUP_MODE_VAR          L"SetupMode"
 #define SECURE_BOOT_VAR         L"SecureBoot"
 
 BOOLEAN is_platform_secure_boot_enabled(VOID);
@@ -101,5 +102,36 @@ EFI_STATUS raw_pub_key_sha256(
         IN const UINT8 *pub_key,
         IN UINTN pub_key_len,
         OUT UINT8 **hash_p);
+
+/* Structure for Attestation_ids info
+*/
+struct attestation_ids_t{
+        UINT32 brandSize;
+        UINT8 brand[ATTESTATION_ID_MAX_LENGTH];
+
+        UINT32 deviceSize;
+        UINT8 device[ATTESTATION_ID_MAX_LENGTH];
+
+        UINT32 modelSize;
+        UINT8 model[ATTESTATION_ID_MAX_LENGTH];
+
+        UINT32 manufacturerSize;
+        UINT8 manufacturer[ATTESTATION_ID_MAX_LENGTH];
+
+        UINT32 nameSize;
+        UINT8 name[ATTESTATION_ID_MAX_LENGTH];
+
+        UINT32 serialSize;
+        UINT8 serial[ATTESTATION_ID_MAX_LENGTH];
+} ;
+
+/* Update the struct attestation_ids for startup_information */
+EFI_STATUS update_attestation_ids(IN VOID *vendorbootimage);
+
+/* Initialize the struct attestation_ids for startup_information */
+EFI_STATUS init_attestation_ids();
+
+/* Return attestation ids instance pointer*/
+struct attestation_ids_t *get_attestation_ids();
 
 #endif
