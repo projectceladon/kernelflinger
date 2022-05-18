@@ -10,4 +10,12 @@ typedef UINTN size_t;
 typedef long time_t;
 typedef VOID *FILE;
 
+typedef struct {
+#if defined(__LP64__)
+  int32_t __private[14];
+#else
+  int32_t __private[10];
+#endif
+} pthread_rwlock_t;
+
 #endif 	/* _OPENSSL_SUPPORT_H_ */
