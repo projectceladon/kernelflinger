@@ -59,6 +59,7 @@
 static struct gpt_partition_interface gparti;
 static UINT64 cur_offset;
 static BOOLEAN userdata_erased = FALSE;
+BOOLEAN new_install_device = FALSE;
 
 #define part_start (gparti.part.starting_lba * gparti.bio->Media->BlockSize)
 #define part_end ((gparti.part.ending_lba + 1) * gparti.bio->Media->BlockSize)
@@ -575,9 +576,16 @@ EFI_STATUS erase_by_label(CHAR16 *label)
 	EFI_STATUS ret;
 
 	/* userdata/data partition only need to be erased once during each boot */
-	if ((!StrCmp(label, L"userdata") || !StrCmp(label, L"data")) && userdata_erased) {
-		debug(L"userdata/data partition had already been erased. skip.");
-		return EFI_SUCCESS;
+	if (!StrCmp(label, L"userdata") || !StrCmp(label, L"data")) {
+		if (userdata_erased) {
+			debug(L"userdata/data partition had already been erased. skip.");
+			return EFI_SUCCESS;
+		}
+
+		if (new_install_device) {
+			debug(L"New install devcie, skip userdata/data partition erase.");
+			return EFI_SUCCESS;
+		}
 	}
 
 	ret = gpt_get_partition_by_label(label, &gparti, LOGICAL_UNIT_USER);
