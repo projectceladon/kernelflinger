@@ -1095,48 +1095,73 @@ static EFI_STATUS classify_cmd_parameters(
                 OUT UINT8 *kernelcmd
                 )
 {
-        CHAR8 *savedPtr, *token = NULL;
-        CHAR8 *tempChar;
-        char delim = ' ';
-        UINT32 cmdCount = 0;
-        UINT32 confCount = 0;
+	UINT32 cnt;
+	bool end = false;
+	CHAR8 *tempChar;
+	CHAR8 *androidcmd_tmp = androidcmd;
+	CHAR8 *kernelcmd_tmp = kernelcmd;
 
-        if (cmd_conf == NULL || androidcmd == NULL || kernelcmd == NULL)
-                return EFI_INVALID_PARAMETER;
+	if (cmd_conf == NULL || androidcmd == NULL || kernelcmd == NULL)
+		return EFI_INVALID_PARAMETER;
 
-        tempChar = cmd_conf;
-        while(*tempChar == ' ')
-                tempChar += 1;
-        token = (CHAR8 *)strtok_r((char *)tempChar, &delim, (char **)&savedPtr);
+	tempChar = cmd_conf;
+	while(*tempChar == ' ')
+		tempChar += 1;
 
-        while (token != NULL) {
-                if (strncmp(token, "androidboot", strlen("androidboot")) == 0) {
-                        memcpy_s(androidcmd + confCount, strlen(token), token, strlen(token));
-                        confCount += strlen(token);
-                        /* In bootconfig, a config value cannot be empty. If so, we need to set
-                         * its value to the default value of "unknown"
-                         * */
-                        if (androidcmd[confCount - 1] == '=') {
-                                memcpy_s(androidcmd + confCount, 7, "unknown", 7);
-                                confCount += 7;
-                        }
-                        androidcmd[confCount] = '\n';
-                        confCount += 1;
-                } else {
-                        memcpy_s(kernelcmd + cmdCount, strlen(token), token, strlen(token));
-                        cmdCount += strlen(token);
-                        kernelcmd[cmdCount] = ' ';
-                        cmdCount += 1;
-                }
-                token = (CHAR8 *)strtok_r(NULL, &delim, (char **)&savedPtr);
-        }
+	while (*tempChar != '\0') {
+		cnt = 0;
+		if (strncmp(tempChar, "androidboot", strlen("androidboot")) == 0) {
+			cnt = strlen("androidboot");
+			while (true) {
+				if (tempChar[cnt] == '\0') {
+					memcpy_s(androidcmd_tmp, cnt, tempChar, cnt);
+					androidcmd_tmp += cnt;
+					end = true;
+					break;
+				} else if (tempChar[cnt] == ' ') {
+					if (tempChar[cnt - 1] == '=') {
+						memcpy_s(androidcmd_tmp, cnt, tempChar, cnt);
+						memcpy_s(androidcmd_tmp + cnt, 7, "unknown", 7);
+						androidcmd_tmp += cnt + 7;
+					} else {
+						memcpy_s(androidcmd_tmp, cnt, tempChar, cnt);
+						androidcmd_tmp += cnt;
+					}
+					*androidcmd_tmp = '\n';
+					androidcmd_tmp += 1;
+					tempChar += cnt;
+					break;
+				}
+				cnt ++;
+			}
+		} else {
+			while (true) {
+				if (tempChar[cnt] == '\0') {
+					memcpy_s(kernelcmd_tmp, cnt, tempChar, cnt);
+					kernelcmd_tmp += cnt;
+					end = true;
+					break;
+				} else if (tempChar[cnt] == ' ') {
+					memcpy_s(kernelcmd_tmp, cnt+1, tempChar, cnt+1);
+					tempChar += cnt+1;
+					kernelcmd_tmp += cnt+1;
+					break;
+				}
+				cnt ++;
+			}
+		}
 
-        androidcmd[confCount - 1] = '\0';
-        kernelcmd[confCount - 1] = '\0';
+		if (end) break;
 
-        return EFI_SUCCESS;
+		while(*tempChar == ' ')
+			tempChar += 1;
+	}
+
+	*androidcmd_tmp = '\0';
+	*kernelcmd_tmp = '\0';
+
+	return EFI_SUCCESS;
 }
-
 
 /* when we call setup_command_line in EFI, parameter is EFI_GUID *swap_guid.
  * when we call setup_command_line in NON EFI, parameter is const CHAR8 *abl_cmd_line.
