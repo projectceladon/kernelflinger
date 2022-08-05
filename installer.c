@@ -1163,10 +1163,7 @@ EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *_table)
 		goto exit;
 	}
 
-	if ((get_current_state() == UNLOCKED) && find_partition("super")) {
-		Print(L"installer: this is new install device\n");
-		new_install_device = TRUE;
-	}
+	new_install_device = TRUE;
 
 	/* Run the fastboot library. */
 	ret = fastboot_start(&bootimage, &efiimage, &imagesize, &target);
