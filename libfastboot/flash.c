@@ -38,7 +38,7 @@
 #include <fastboot.h>
 #include <android.h>
 #include <slot.h>
-
+#include "fastboot.h"
 #include "uefi_utils.h"
 #include "gpt.h"
 #include "gpt_bin.h"
@@ -571,6 +571,33 @@ static EFI_STATUS erase_blocks(EFI_HANDLE handle, EFI_BLOCK_IO *bio, EFI_LBA sta
 	return fill_zero(bio, start, end);
 }
 
+static EFI_STATUS fast_erase_part(const CHAR16 *label)
+{
+	EFI_STATUS ret;
+	EFI_LBA start, end, min_end;
+
+	ret = gpt_get_partition_by_label(label, &gparti, LOGICAL_UNIT_USER);
+	if (EFI_ERROR(ret)) {
+		efi_perror(ret, L"Failed to get partition %s", label);
+		return ret;
+	}
+
+	start = gparti.part.starting_lba;
+	end = gparti.part.ending_lba;
+	min_end = start + (FS_MGR_SIZE / gparti.bio->Media->BlockSize) + 1;
+
+	ret = fill_zero(gparti.bio, start, min(min_end, end));
+	if (EFI_ERROR(ret)) {
+		efi_perror(ret, L"Failed to erase partition %s", label);
+		return ret;
+	}
+
+	if (!CompareGuid(&gparti.part.type, &EfiPartTypeSystemPartitionGuid))
+		return gpt_refresh();
+
+	return EFI_SUCCESS;
+}
+
 EFI_STATUS erase_by_label(CHAR16 *label)
 {
 	EFI_STATUS ret;
@@ -583,8 +610,13 @@ EFI_STATUS erase_by_label(CHAR16 *label)
 		}
 
 		if (new_install_device) {
-			debug(L"New install devcie, skip userdata/data partition erase.");
-			return EFI_SUCCESS;
+			debug(L"New install devcie, fast erase userdata/data partition");
+			return fast_erase_part(label);
+		} else {
+#ifndef USER
+			debug(L"fast erase userdata/data partition for userdebug build");
+			return fast_erase_part(label);
+#endif
 		}
 	}
 
