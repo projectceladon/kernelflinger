@@ -593,7 +593,10 @@ EFI_STATUS erase_by_label(CHAR16 *label)
 		efi_perror(ret, L"Failed to get partition %s", label);
 		return ret;
 	}
-	ret = erase_blocks(gparti.handle, gparti.bio, gparti.part.starting_lba, gparti.part.ending_lba);
+	if (!StrCmp(label, L"userdata"))
+		ret = erase_blocks(gparti.handle, gparti.bio, gparti.part.starting_lba, gparti.part.starting_lba+20);
+	else
+		ret = erase_blocks(gparti.handle, gparti.bio, gparti.part.starting_lba, gparti.part.ending_lba);
 	if (EFI_ERROR(ret)) {
 		efi_perror(ret, L"Failed to erase partition %s", label);
 		return ret;
