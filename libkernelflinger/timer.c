@@ -69,17 +69,19 @@ __RDMSR (unsigned idx)
 	return msr.val;
 }
 
-static uint64_t __attribute__((unused,always_inline))
+uint64_t __attribute__((unused,always_inline))
 __RDTSC (void)
 {
 	uint32_t lo, hi;
-
+	error(L"readtsc start");
 	asm volatile ("rdtsc" : "=a" (lo), "=d" (hi));
+	error(L"readtsc end");
 	return (uint64_t) hi << 32 | lo;
 }
 
 uint32_t get_cpu_freq(void)
 {
+
 	uint32_t cpu_freq;
 	uint32_t max_nb_ratio;
 	msr_t platform_info;
@@ -87,7 +89,12 @@ uint32_t get_cpu_freq(void)
 	platform_info.val = __RDMSR (0xce);
 	max_nb_ratio = (platform_info.lo >> 8) & 0xff;
 	cpu_freq = 100 * max_nb_ratio;
-
+	if(cpu_freq) {
+//		error(L"cpu freq is 0, set to 2G anyway");
+		cpu_freq = 2000000;
+	} else {
+//		error(L"cpu freq is %u \n", cpu_freq);
+	}
 	return cpu_freq;
 }
 
@@ -104,6 +111,7 @@ uint32_t boottime_in_msec(void)
 	}
 
 	tick = __RDTSC();
+	error(L"tsc = %llu", tick);
 	bt_us = (((unsigned) (tick >> 6)) / cpu_freq) << 6;
 	bt_ms = bt_us / 1000;
 

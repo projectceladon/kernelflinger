@@ -1103,7 +1103,7 @@ static VOID enter_fastboot_mode(UINT8 boot_state)
 
 	die();
 }
-static void bootloader_recover_mode(UINT8 boot_state)
+static void bootloader_recover_mode(UINT8 boot_state __unused)
 {
 	enum boot_target target;
 
@@ -1130,8 +1130,8 @@ static void bootloader_recover_mode(UINT8 boot_state)
 	die();
 }
 
-static VOID boot_error(enum ux_error_code error_code, UINT8 boot_state,
-			UINT8 *hash, UINTN hash_size)
+static VOID boot_error(enum ux_error_code error_code __unused, UINT8 boot_state,
+			UINT8 *hash __unused, UINTN hash_size __unused)
 {
 	BOOLEAN power_off = FALSE;
 	enum boot_target bt;
@@ -1165,6 +1165,7 @@ static VOID boot_error(enum ux_error_code error_code, UINT8 boot_state,
 		halt_system();
 }
 
+extern uint64_t tt_tsc;
 EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table)
 {
 	EFI_STATUS ret;
@@ -1177,11 +1178,16 @@ EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table)
 	enum boot_target boot_target = NORMAL_BOOT;
 	UINT8 boot_state = BOOT_STATE_GREEN;
 	VBDATA *vb_data = NULL;
+	uint64_t tick;
 
 	set_boottime_stamp(TM_EFI_MAIN);
 	/* gnu-efi initialization */
 	InitializeLib(image, sys_table);
 
+	error(L"kernelflinger start time stamp = %u", boottime_in_msec());
+     	tick = __RDTSC();
+        error(L"tsc = %llu", tick);
+	tt_tsc=tick;
 #ifdef USE_UI
 	ux_display_vendor_splash();
 #endif

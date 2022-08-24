@@ -44,11 +44,11 @@ enum TM_POINT {
 	TM_JMP_KERNEL,
 	TM_POINT_LAST
 };
-
+extern uint64_t tt_tsc;
 uint32_t get_cpu_freq(void);
 uint32_t boottime_in_msec(void);
 void set_boottime_stamp(int num);
 void set_efi_enter_point(unsigned int value);
 void construct_stages_boottime(CHAR8 *time_str, size_t buf_len);
-
+uint64_t __attribute__((unused,always_inline)) __RDTSC (void);
 #endif
