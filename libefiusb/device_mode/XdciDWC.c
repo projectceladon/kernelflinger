@@ -2570,6 +2570,11 @@ DwcXdciInitEp (
   //
   EpNum = DwcXdciGetPhysicalEpNum (EpInfo->EpNum, EpInfo->EpDir);
 
+  if (EpNum >= DWC_XDCI_MAX_ENDPOINTS * 2) {
+    DEBUG ((DEBUG_INFO, "DwcXdciEpClearStall: INVALID EpNum\n"));
+    return EFI_DEVICE_ERROR;
+  }
+
   //
   // Save EP properties
   //
@@ -2762,6 +2767,11 @@ DwcXdciEpStall (
   // Convert to physical endpoint
   //
   EpNum = DwcXdciGetPhysicalEpNum (EpInfo->EpNum, EpInfo->EpDir);
+
+  if (EpNum >= DWC_XDCI_MAX_ENDPOINTS * 2) {
+    DEBUG ((DEBUG_INFO, "DwcXdciEpClearStall: INVALID EpNum\n"));
+    return EFI_DEVICE_ERROR;
+  }
 
   //
   // Set Ep State Info
@@ -3234,6 +3244,11 @@ DwcXdciEpTxData (
              XferReq->EpInfo.EpDir
              );
 
+  if (EpNum >= DWC_XDCI_MAX_ENDPOINTS * 2) {
+    DEBUG ((DEBUG_INFO, "DwcXdciEpClearStall: INVALID EpNum\n"));
+    return EFI_DEVICE_ERROR;
+  }
+
   Trb = (LocalCoreHandle->Trbs + (EpNum * DWC_XDCI_TRB_NUM));
   DEBUG ((DEBUG_INFO, "(DwcXdciEpTxData)EpNum is %d\n", EpNum));
 
@@ -3346,6 +3361,11 @@ DwcXdciEpRxData (
   // Convert to physical endpoint
   //
   EpNum = DwcXdciGetPhysicalEpNum (XferReq->EpInfo.EpNum, XferReq->EpInfo.EpDir);
+
+  if (EpNum >= DWC_XDCI_MAX_ENDPOINTS * 2) {
+    DEBUG ((DEBUG_INFO, "DwcXdciEpClearStall: INVALID EpNum\n"));
+    return EFI_DEVICE_ERROR;
+  }
 
   Trb = (LocalCoreHandle->Trbs + (EpNum * DWC_XDCI_TRB_NUM));
   DEBUG ((DEBUG_INFO, "(DwcXdciEpRxData)EpNum is %d\n", EpNum));
