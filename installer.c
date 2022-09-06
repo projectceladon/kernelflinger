@@ -51,6 +51,10 @@
 #include "security.h"
 #include "security_interface.h"
 #include "security_efi.h"
+#ifdef USE_UI
+#include "installer_ui.h"
+#include "ui.h"
+#endif
 #ifdef USE_TPM
 #include "tpm2_security.h"
 #endif
@@ -1164,6 +1168,12 @@ EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *_table)
 	}
 
 	new_install_device = TRUE;
+
+#ifdef USE_UI
+	ret = ux_prompt_user_confirm();
+	if (ret != EFI_SUCCESS)
+		goto exit;
+#endif
 
 	/* Run the fastboot library. */
 	ret = fastboot_start(&bootimage, &efiimage, &imagesize, &target);
