@@ -1241,8 +1241,7 @@ EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table)
 	/* For civ, flash images to disk is not MUST. So set device to LOCKED
 	 * state by default on the first boot.
 	*/
-	if (need_lock)
-		set_current_state(LOCKED);
+	set_current_state(UNLOCKED);
 
 	ret = set_device_security_info(NULL);
 	if (EFI_ERROR(ret)) {
