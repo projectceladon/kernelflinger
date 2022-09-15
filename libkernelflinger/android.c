@@ -475,7 +475,7 @@ boot:
         /*
          * Called after ExitBootService.
          */
-        trusty_late_init();
+       // trusty_late_init();
 #endif
 
 #if __LP64__
