@@ -749,35 +749,40 @@ static void installer_format(INTN argc, CHAR8 **argv)
 	void *data = NULL;
 	UINTN size;
 	CHAR16 *filename;
+	CHAR8 *argv_temp[2];
 
-	if (argc != 2) {
-		fastboot_fail("Format command requires exactly 2 arguments");
+	if (argc < 2 || argc > 4) {
+		fastboot_fail("Format command invalid");
 		return;
+	} else {
+		argv_temp[0] = argv[0];
+		argv_temp[1] = argv[argc - 1];
+		argc = 2;
 	}
 
-	filename = get_format_image_filename(argv[1]);
+	filename = get_format_image_filename(argv_temp[1]);
 	if (!filename)
 		return;
 
 	ret = uefi_read_file(file_io_interface, filename, &data, &size);
 	if (ret == EFI_NOT_FOUND && !StrCmp(L"userdata.img", filename)) {
-		fastboot_info("userdata.img is missing, cannot format %a", argv[1]);
+		fastboot_info("userdata.img is missing, cannot format %a", argv_temp[1]);
 		fastboot_info("Android fs_mgr will manage this");
 	} else if (EFI_ERROR(ret)) {
 		inst_perror(ret, "Unable to read file %s", filename);
 		goto free_filename;
 	}
 
-	argv[1] = get_target(argv[1]);
-	if (!argv[1])
+	argv_temp[1] = get_target(argv_temp[1]);
+	if (!argv_temp[1])
 		goto free_data;
 
-	do_erase(argc, argv);
+	do_erase(argc, argv_temp);
 	if (!last_cmd_succeeded)
 		goto free_data;
 
 	if (data)
-		installer_flash_buffer(data, size, argc, argv);
+		installer_flash_buffer(data, size, argc, argv_temp);
 
 free_data:
 	FreePool(data);
