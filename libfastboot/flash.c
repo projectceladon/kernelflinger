@@ -653,7 +653,7 @@ EFI_STATUS garbage_disk(void)
 		return ret;
 	}
 
-	size = gparti.bio->Media->BlockSize * N_BLOCK;
+	size = ((UINTN)gparti.bio->Media->BlockSize) * N_BLOCK;
 	ret = alloc_aligned(&chunk, &aligned_chunk, size, gparti.bio->Media->IoAlign);
 	if (EFI_ERROR(ret)) {
 		efi_perror(ret, L"Unable to allocate the garbage chunk");

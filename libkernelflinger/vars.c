@@ -816,6 +816,7 @@ char *get_serial_number(void)
 	char *pos;
 	unsigned int zeroes = 0;
 	UINTN len;
+	EFI_STATUS ret;
 
 	if (serialno[0] != '\0')
 		return serialno;
@@ -867,7 +868,9 @@ char *get_serial_number(void)
 
 	return serialno;
 bad:
-	strncpy_s((CHAR8 *)serialno, sizeof(serialno), (CHAR8 *)"00badbios00badbios00", SERIALNO_MAX_SIZE);
+	ret = strncpy_s((CHAR8 *)serialno, sizeof(serialno), (CHAR8 *)"00badbios00badbios00", SERIALNO_MAX_SIZE);
+	if (EFI_ERROR(ret))
+		return NULL;
 	return serialno;
 }
 
