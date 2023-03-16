@@ -15,7 +15,7 @@ LOCAL_STATIC_LIBRARIES := \
 
 LOCAL_EXPORT_C_INCLUDE_DIRS := $(LOCAL_PATH)/../include/libheci
 LOCAL_C_INCLUDES := $(LOCAL_PATH)/../include/libheci \
-		$(LOCAL_PATH)/../libkernelflinger/protocol
+		$(LOCAL_PATH)/../libkernelflinger
 
 
 LOCAL_SRC_FILES := \

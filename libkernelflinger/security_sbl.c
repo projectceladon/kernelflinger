@@ -32,7 +32,6 @@
 #include <efiapi.h>
 #include <efilib.h>
 #include "security_interface.h"
-#include "rpmb_storage.h"
 #include "life_cycle.h"
 #include "security.h"
 

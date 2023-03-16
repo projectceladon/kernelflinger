@@ -64,7 +64,7 @@ Transform PNG file to C source data structure.\n\
 
 static void error(const char *s)
 {
-	perror(s);
+	perrors(s);
 	exit(EXIT_FAILURE);
 }
 

@@ -291,7 +291,7 @@ fail:
 			return ret;
 		}
 
-		ret = android_image_start_buffer(NULL, bootimage,
+		ret = android_image_start_buffer(NULL, bootimage, NULL,
 							target, boot_state, NULL,
 							param, (const CHAR8 *)cmd_buf);
 		if (EFI_ERROR(ret)) {
@@ -702,7 +702,7 @@ static EFI_STATUS start_boot_image(VOID *bootimage, UINT8 boot_state,
 
 	debug(L"chainloading boot image, boot state is %s\n",
 	boot_state_to_string(boot_state));
-	ret = android_image_start_buffer(NULL, bootimage,
+	ret = android_image_start_buffer(NULL, bootimage, NULL,
 					 boot_target, boot_state, NULL,
 					 vb_data, (const CHAR8 *)abl_cmd_line);
 	if (EFI_ERROR(ret))
