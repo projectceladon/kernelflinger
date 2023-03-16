@@ -379,7 +379,8 @@ LOCAL_STATIC_LIBRARIES += \
 	libefiwrapper-$(TARGET_BUILD_VARIANT) \
 	libefiwrapper_drivers-$(TARGET_BUILD_VARIANT) \
 	efiwrapper-$(TARGET_BUILD_VARIANT) \
-	libelfloader-$(TARGET_BUILD_VARIANT)
+	libelfloader-$(TARGET_BUILD_VARIANT) \
+	libxbc-$(TARGET_BUILD_VARIANT)
 
 ifeq ($(TARGET_USE_TRUSTY),true)
     LOCAL_STATIC_LIBRARIES += libqltipc-$(TARGET_BUILD_VARIANT)
@@ -463,10 +464,9 @@ $(ABL_AVB_PK_OBJ): $(ABL_PADDED_AVB_PK)
 LOCAL_GENERATED_SOURCES += $(ABL_AVB_PK_OBJ)
 LOCAL_C_INCLUDES := \
 	$(addprefix $(LOCAL_PATH)/,avb)
-
-LOCAL_C_INCLUDES := \
+LOCAL_C_INCLUDES += \
 	$(addprefix $(LOCAL_PATH)/,libkernelflinger)
-LOCAL_C_INCLUDES := \
+LOCAL_C_INCLUDES += \
 	$(addprefix $(LOCAL_PATH)/,libsslsupport)
 include $(BUILD_ABL_EXECUTABLE)
 
@@ -488,7 +488,8 @@ LOCAL_STATIC_LIBRARIES += \
 	libefiwrapper-$(TARGET_BUILD_VARIANT) \
 	libefiwrapper_drivers-$(TARGET_BUILD_VARIANT) \
 	efiwrapper-$(TARGET_BUILD_VARIANT) \
-	libelfloader-$(TARGET_BUILD_VARIANT)
+	libelfloader-$(TARGET_BUILD_VARIANT) \
+	libxbc-$(TARGET_BUILD_VARIANT)
 
 ifeq ($(TARGET_USE_TRUSTY),true)
     LOCAL_STATIC_LIBRARIES += libqltipc-$(TARGET_BUILD_VARIANT)
@@ -513,9 +514,9 @@ endif
 LOCAL_GENERATED_SOURCES += $(ABL_AVB_PK_OBJ)
 LOCAL_C_INCLUDES := \
 	$(addprefix $(LOCAL_PATH)/,avb)
-LOCAL_C_INCLUDES := \
+LOCAL_C_INCLUDES += \
 	$(addprefix $(LOCAL_PATH)/,libkernelflinger)
-LOCAL_C_INCLUDES := \
+LOCAL_C_INCLUDES += \
 	$(addprefix $(LOCAL_PATH)/,libsslsupport)
 include $(BUILD_ABL_EXECUTABLE)
 
