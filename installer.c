@@ -214,6 +214,9 @@ static EFI_STATUS installer_flash_big_chunk_multiple(EFI_FILE **file, UINTN *rea
 	EFI_STATUS ret = EFI_INVALID_PARAMETER;
 	UINTN payload_size, read_size, already_read, ckh_blks, data_size;
 	const UINTN MAX_DATA_SIZE = dl->max_size - offsetof(flash_buffer_t, ckh_data);
+	if (fb->sph.blk_sz == 0) {
+		return EFI_INVALID_PARAMETER;
+	}
 	const UINTN MAX_BLKS = MAX_DATA_SIZE / fb->sph.blk_sz;
 	const UINTN HEADER_SIZE = offsetof(flash_buffer_t, d);
 	struct chunk_header *ckh;
