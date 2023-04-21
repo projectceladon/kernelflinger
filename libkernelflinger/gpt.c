@@ -171,7 +171,7 @@ static EFI_STATUS read_gpt_partitions(struct gpt_disk *disk)
 	}
 
 	offset = disk->bio->Media->BlockSize * disk->gpt_hd.entries_lba;
-	size = disk->gpt_hd.number_of_entries * disk->gpt_hd.size_of_entry;
+	size = ((UINTN)disk->gpt_hd.number_of_entries) * disk->gpt_hd.size_of_entry;
 
 	ret = uefi_call_wrapper(disk->dio->ReadDisk, 5, disk->dio, disk->bio->Media->MediaId, offset, size, disk->partitions);
 	if (EFI_ERROR(ret)) {
@@ -712,7 +712,7 @@ static EFI_STATUS gpt_write_table_to_disk(struct gpt_header *gh)
 	UINT64 entries_offset, header_offset, entries_size;
 	EFI_STATUS ret;
 
-	entries_size = gh->number_of_entries * gh->size_of_entry;
+	entries_size = ((UINT64)gh->number_of_entries) * gh->size_of_entry;
 	header_offset = gh->my_lba * sdisk.bio->Media->BlockSize;
 	entries_offset = gh->entries_lba * sdisk.bio->Media->BlockSize;
 
@@ -742,7 +742,7 @@ static EFI_STATUS gpt_write_partition_tables(void)
 
 	gh = &sdisk.gpt_hd;
 
-	entries_size = gh->number_of_entries * gh->size_of_entry;
+	entries_size = ((UINT64)gh->number_of_entries) * gh->size_of_entry;
 	gh->my_lba = 1;
 	gh->alternate_lba = sdisk.bio->Media->LastBlock;
 	gh->entries_lba = 2;

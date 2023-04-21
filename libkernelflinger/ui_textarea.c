@@ -96,7 +96,9 @@ static void ui_textarea_copy_char(unsigned char *src_p, UINTN src_row_bytes,
 				  EFI_GRAPHICS_OUTPUT_BLT_PIXEL *color)
 {
 	int i, j;
-
+	if (!color) {
+		return;
+	}
 	for (j = 0; j < height; ++j) {
 		unsigned char* sx = src_p;
 		unsigned char* px = dst_p;
