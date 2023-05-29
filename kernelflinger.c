@@ -1039,7 +1039,10 @@ static VOID enter_fastboot_mode(UINT8 boot_state)
 			&boot_state, FALSE, TRUE);
 	set_oemvars_update(TRUE);
 	//stop bootloader seed protocol when entering fastboot mode
+#ifndef USE_SBL
+	//WA, to remove
 	stop_bls_proto();
+#endif
 	for (;;) {
 		target = UNKNOWN_TARGET;
 
@@ -1109,9 +1112,12 @@ static VOID enter_fastboot_mode(UINT8 boot_state)
 
 	die();
 }
-static void bootloader_recover_mode(UINT8 boot_state __unused)
+
+static void bootloader_recover_mode(UINT8 boot_state)
 {
 	enum boot_target target;
+
+	(VOID)boot_state;
 
 	if (is_running_on_kvm()) {
 		/*
@@ -1136,11 +1142,16 @@ static void bootloader_recover_mode(UINT8 boot_state __unused)
 	die();
 }
 
-static VOID boot_error(enum ux_error_code error_code __unused, UINT8 boot_state,
-			UINT8 *hash __unused, UINTN hash_size __unused)
+static VOID boot_error(enum ux_error_code error_code , UINT8 boot_state,
+			UINT8 *hash , UINTN hash_size )
 {
 	BOOLEAN power_off = FALSE;
 	enum boot_target bt;
+
+	(VOID)error_code;
+	(VOID)boot_state;
+	(VOID)hash;
+	(VOID)hash_size;
 
 	if (boot_state > min_boot_state()) {
 		power_off = TRUE;

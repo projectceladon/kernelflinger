@@ -1163,6 +1163,94 @@ static EFI_STATUS classify_cmd_parameters(
 	return EFI_SUCCESS;
 }
 
+#ifdef USE_SBL
+typedef union {
+	UINT16 bdf;
+	struct {
+		UINT8 function : 3;
+		UINT8 device : 5;
+		UINT8 bus : 8;
+	};
+} pci_dev_t;
+
+typedef struct {
+	UINT16 vendor;
+	UINT16 device;
+	UINT16 command;
+	UINT16 status;
+	UINT8 revision;
+	struct {
+		UINT8 interface;
+		UINT8 sub;
+		UINT8 base;
+	} class;
+} __attribute__((packed)) pci_header_t;
+
+static inline void outl(UINT32 val, UINT32 port)
+{
+	__asm__ __volatile__("outl %0, %w1" : : "a"(val), "Nd"(port));
+}
+
+static inline UINT32 inl(UINT32 port)
+{
+	UINT32 val;
+
+	__asm__ __volatile__("inl %w1, %0" : "=a"(val) : "Nd"(port));
+	return val;
+}
+
+static UINT32 pci_read_config32(pci_dev_t dev, UINT16 reg)
+{
+	outl(0x80000000 | dev.bdf << 8 | (reg & ~3), 0xcf8);
+	return inl(0xcfc + (reg & 3));
+}
+
+static void pci_read_config(pci_dev_t dev, void *buf, UINT16 count)
+{
+	UINTN i;
+
+	for (i = 0; i < count; i += sizeof(UINT32))
+		*(UINT32 *)&buf[i] = pci_read_config32(dev, i);
+}
+
+static INT32 bridge_diskbus(UINT32 bus_num)
+{
+	UINTN i;
+	pci_dev_t dev;
+	pci_header_t header;
+	UINT32 dev_bus;
+
+	for (i = 0, dev.bdf = 0; i <= ((bus_num<<8)|0xff); i++, dev.bdf = i) {
+		UINT32 val = pci_read_config32(dev, 0);
+
+		if (val == 0xffffffff || val == 0x00000000 ||
+		    val == 0x0000ffff || val == 0xffff0000)
+			continue;
+
+		pci_read_config(dev, &header, sizeof(header));
+
+		//PCI BRIDGE
+		if (header.class.base == 0x6 && header.class.sub == 0x4) {
+			debug(L"%02x:%02x.%d \n", dev.bus, dev.device, dev.function);
+
+			dev_bus = pci_read_config32(dev, 0x18);
+			debug(L"Pci bridge: primary_bus = %x second_bus = %x\n", dev_bus&0xff, (dev_bus>>8)&0xff);
+
+			if (bus_num == ((dev_bus>>8)&0xff))
+				return i;
+		}
+	}
+
+	return -1;
+}
+
+UINT32 __attribute__((weak)) get_diskbus()
+{
+	return 0;
+
+}
+#endif
+
 /* when we call setup_command_line in EFI, parameter is EFI_GUID *swap_guid.
  * when we call setup_command_line in NON EFI, parameter is const CHAR8 *abl_cmd_line.
  * */
@@ -1179,8 +1267,10 @@ static EFI_STATUS setup_command_line(
         CHAR16 *cmdline16 = NULL;
         char   *serialno = NULL;
         CHAR16 *serialport = NULL;
+#ifndef USE_SBL
+	//todo: support boot reason
         CHAR16 *bootreason = NULL;
-
+#endif
         EFI_PHYSICAL_ADDRESS cmdline_addr;
         CHAR8 *cmdline;
         CHAR8 *cmd_conf= NULL;
@@ -1235,7 +1325,8 @@ static EFI_STATUS setup_command_line(
                 if (EFI_ERROR(ret))
                         goto out;
         }
-
+#ifndef USE_SBL
+	//todo: support boot reason
         if (is_uefi)
                 bootreason = get_boot_reason();
         else
@@ -1249,7 +1340,7 @@ static EFI_STATUS setup_command_line(
         ret = prepend_command_line(&cmdline16, L"androidboot.bootreason=%s", bootreason);
         if (EFI_ERROR(ret))
                 goto out;
-
+#endif
         ret = prepend_command_line(&cmdline16, L"androidboot.verifiedbootstate=%s",
                                    boot_state_to_string(boot_state));
         if (EFI_ERROR(ret))
@@ -1281,7 +1372,26 @@ static EFI_STATUS setup_command_line(
         if (boot_device) {
                 CHAR16 *diskbus = NULL;
 #ifdef AUTO_DISKBUS
+#ifdef USE_SBL
+		INT32 bdf;
+		UINT32 disk_bus_num, storage_bus_num;
+
+		disk_bus_num = get_diskbus();
+		debug(L"nvme controller diskbus = %x\n", disk_bus_num);
+
+		storage_bus_num = disk_bus_num>>16;
+
+		bdf = bridge_diskbus(storage_bus_num);
+		if (bdf < 0) {
+			error(L"No pci bridge found, assue bus is 0");
+			bdf = 0;
+		}
+
+                diskbus = PoolPrint(L"%02x.%x", (bdf>>3)&0x1f, bdf&0x7);
+#else
                 diskbus = PoolPrint(L"%02x.%x", boot_device->Device, boot_device->Function);
+                debug(L"pci bridge: device = %x func = %x \n", boot_device->Device, boot_device->Function);
+#endif
 #else
                 diskbus = PoolPrint(L"%a", (CHAR8 *)PREDEF_DISK_BUS);
 #endif
@@ -1289,7 +1399,7 @@ static EFI_STATUS setup_command_line(
                 ret = prepend_command_line(&cmdline16,
                                            (aosp_header->header_version < 2)
                                            ? L"androidboot.diskbus=%s"
-                                           : L"androidboot.boot_devices=pci0000:00/0000:00:%s",
+                                           : L"androidboot.boot_devices=pci0000:00/0000:00:%s pci=noaer",
                                            diskbus);
                 FreePool(diskbus);
                 if (EFI_ERROR(ret))
