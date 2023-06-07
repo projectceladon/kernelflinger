@@ -1409,6 +1409,34 @@ void *memcpy(void *dest, const void *source, size_t count)
         return dest;
 }
 
+#ifdef CRASHMODE_USE_ADB
+EFI_STATUS memdump(void *dest, size_t dest_size, const void *source, size_t count)
+{
+        if (count == 0) {
+                debug(L"<memcpy_s count NULL");
+                return EFI_SUCCESS;
+        }
+
+        if (dest == NULL) {
+                error(L"<memcpy_s dest NULL");
+                return EFI_INVALID_PARAMETER;
+        }
+
+        if (dest_size < count) {
+                CopyMem(dest, 0, (UINTN)dest_size);
+                error(L"<memcpy_s BAD_BUFFER_SIZE 0x%x %d %d", source, dest_size, count);
+                return EFI_BAD_BUFFER_SIZE;
+        }
+
+        if (source == NULL) {
+                debug(L"<memcpy_s source NULL");
+        }
+
+        CopyMem(dest, source, (UINTN)count);
+        return EFI_SUCCESS;
+}
+#endif
+
 EFI_STATUS memcpy_s(void *dest, size_t dest_size, const void *source, size_t count)
 {
         if (count == 0) {
