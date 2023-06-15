@@ -63,7 +63,7 @@
 /* size of "INFO" "OKAY" or "FAIL" */
 #define CODE_LENGTH 4
 #define INFO_PAYLOAD (MAGIC_LENGTH - CODE_LENGTH)
-#define MAX_VARIABLE_LENGTH 64
+#define MAX_VARIABLE_LENGTH 256
 #if defined(IOC_USE_SLCAN) || defined(IOC_USE_CBC)
 #define TIMEOUT 5
 #endif
