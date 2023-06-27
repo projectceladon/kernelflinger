@@ -40,8 +40,6 @@
 #include "gpt.h"
 #include "intel_variables.h"
 #include "android.h"
-#include "tpm2_security.h"
-#include "vars.h"
 
 static cmdlist_t cmdlist;
 
@@ -115,31 +113,6 @@ EFI_STATUS change_device_state(enum device_state new_state, BOOLEAN interactive)
 		info(L"Erase done.");
 	}
 #endif
-
-	info(L"Erasing rollback index...");
-
-#ifdef USE_TPM
-/* There are only 8 rollback slots inside TPM */
-#define MAX_ROLLBACK_SLOTS_NUM 8
-#else
-#define MAX_ROLLBACK_SLOTS_NUM AVB_MAX_NUMBER_OF_ROLLBACK_INDEX_LOCATIONS
-#endif
-
-	for (int idx = 0; idx < MAX_ROLLBACK_SLOTS_NUM; idx++) {
-#ifdef USE_TPM
-		ret = write_rollback_index_tpm2(idx, 0);
-#else
-		ret = write_efi_rollback_index(idx, 0);
-#endif
-		if (EFI_ERROR(ret)) {
-			if (interactive)
-				fastboot_fail("Couldn't write rollback index");
-			else
-				info(L"Couldn't write rollback index");
-
-			return ret;
-		}
-	}
 
 	ret = set_current_state(new_state);
 	if (EFI_ERROR(ret)) {
