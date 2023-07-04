@@ -334,7 +334,9 @@ LOCAL_GENERATED_SOURCES += $(KFINS_AVB_PK_OBJ)
 LOCAL_C_INCLUDES += $(addprefix $(LOCAL_PATH)/,avb)
 LOCAL_STATIC_LIBRARIES += libavb_kernelflinger-$(TARGET_BUILD_VARIANT)
 
+ifneq ($(TARGET_USE_SBL),true)
 include $(BUILD_EFI_EXECUTABLE) # For installer-$(TARGET_BUILD_VARIANT)
+endif
 
 ifeq ($(BOOTLOADER_SLOT), true)
 ifeq ($(BOARD_SLOT_AB_ENABLE),true)
