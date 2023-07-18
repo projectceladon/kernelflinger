@@ -1267,6 +1267,14 @@ EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table)
 		return ret;
 	}
 
+	/* The code is only availble for fb4sbl.elf image which is used
+	 * as ELK file in non efi boot. It will force bootloader enter
+	 * into fastboot mode.
+	 */
+#ifdef __FORCE_FASTBOOT
+	enter_fastboot_mode(boot_state);
+#endif
+
 	/* No UX prompts before this point, do not want to interfere
 	 * with magic key detection
 	 */
