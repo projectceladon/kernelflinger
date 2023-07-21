@@ -293,12 +293,12 @@ EFI_STATUS flash_esp(VOID *data, UINTN size)
 
 EFI_STATUS flash_bootloader_a(VOID *data, UINTN size)
 {
-	return flash_bootloader_verify(BOOTLOADER_A_LABEL, data, size);
+	return flash_partition(data, size, BOOTLOADER_A_LABEL);
 }
 
 EFI_STATUS flash_bootloader_b(VOID *data, UINTN size)
 {
-	return flash_bootloader_verify(BOOTLOADER_B_LABEL, data, size);
+	return flash_partition(data, size, BOOTLOADER_B_LABEL);
 }
 
 /* when flashing efi bootloader or bootloader_a/bootloader_b,
@@ -321,7 +321,7 @@ EFI_STATUS flash_bootloader(VOID *data, UINTN size)
 
 	if (StrCmp(label, BOOTLOADER_LABEL)) {
 		debug(L"bootloader slot ab is enable.");
-		return flash_bootloader_verify(label, data, size);
+		return flash_partition(data, size, label);
 	}
 
 	ret = gpt_get_partition_type(label, &type, LOGICAL_UNIT_USER);
