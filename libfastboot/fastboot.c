@@ -1121,7 +1121,7 @@ static void cmd_download(INTN argc, CHAR8 **argv)
 		fastboot_fail("data too large");
 		return;
 	}
-	ui_print(L"Receiving %ld bytes ...", dl.size);
+	ui_print(L"Receiving 0x%llx bytes ...", dl.size);
 
 	len = efi_snprintf(response, sizeof(response), (CHAR8 *)"DATA%08x",
 			   dl.size);
