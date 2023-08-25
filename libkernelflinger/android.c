@@ -240,6 +240,7 @@ typedef struct {
 } __attribute__((packed)) dt_addr_t;
 
 static dt_addr_t *gdt;
+UINT64 start_tsc;
 
 typedef void(*kernel_func)(void *, struct boot_params *);
 
@@ -1601,6 +1602,7 @@ static EFI_STATUS handover_kernel(CHAR8 *bootimage, EFI_HANDLE parent_image)
         UINT32 koffset;
         size_t setup_header_size;
         size_t setup_header_end;
+        UINT64 end_tsc;
 
         aosp_header = (struct boot_img_hdr *)bootimage;
         buf = get_boot_param_hdr(bootimage);
@@ -1676,6 +1678,11 @@ static EFI_STATUS handover_kernel(CHAR8 *bootimage, EFI_HANDLE parent_image)
         if (EFI_ERROR(ret))
                 goto out;
         boot_params->hdr.code32_start = (UINT32)((UINT64)kernel_start);
+
+	end_tsc = __RDTSC();
+	log(L"start tsc = %llx\n", start_tsc);
+	log(L"end   tsc = %llx\n", end_tsc);
+	log(L"total tsc consumed by kernelflinger = %llx\n", end_tsc - start_tsc);
 
         ret = handover_jump(parent_image, boot_params, kernel_start);
         /* Shouldn't get here */
