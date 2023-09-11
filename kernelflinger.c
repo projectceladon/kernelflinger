@@ -1203,7 +1203,7 @@ EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table)
 	ux_display_vendor_splash();
 #endif
 
-	debug(KERNELFLINGER_VERSION);
+	info(KERNELFLINGER_VERSION);
 
 	/* populate globals */
 	g_parent_image = image;

@@ -1244,7 +1244,7 @@ static INT32 bridge_diskbus(UINT32 bus_num)
 	return -1;
 }
 
-UINT32 __attribute__((weak)) get_diskbus()
+UINT32 __attribute__((weak)) get_bootdev_diskbus()
 {
 	return 0;
 
@@ -1376,7 +1376,7 @@ static EFI_STATUS setup_command_line(
 		INT32 bdf;
 		UINT32 disk_bus_num, storage_bus_num;
 
-		disk_bus_num = get_diskbus();
+		disk_bus_num = get_bootdev_diskbus();
 		debug(L"nvme controller diskbus = %x\n", disk_bus_num);
 
 		storage_bus_num = disk_bus_num>>16;
