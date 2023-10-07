@@ -72,6 +72,9 @@
 #ifdef USE_TPM
 #include "tpm2_security.h"
 #endif
+#ifdef USE_IVSHMEM
+#include "ivshmem.h"
+#endif
 
 /* Ensure this is embedded in the EFI binary somewhere */
 static const CHAR16 __attribute__((used)) magic[] = L"### kernelflinger ###";
@@ -1238,6 +1241,14 @@ EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table)
 			BOOTLOADER_FILE, BOOTLOADER_FILE_BAK, KFSELF_FILE, KFBACKUP_FILE);
 
 	need_lock = device_need_locked();
+
+#ifdef USE_IVSHMEM
+	ret = ivshmem_init();
+	if (EFI_ERROR(ret) && ret != EFI_NOT_FOUND) {
+		efi_perror(ret, L"Failed to init ivshmem, enter fastboot mode");
+		boot_target = FASTBOOT;
+	}
+#endif
 
 #ifdef USE_TPM
 	if (!is_live_boot()) {
