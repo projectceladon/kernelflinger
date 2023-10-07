@@ -127,6 +127,7 @@ LOCAL_SRC_FILES := \
 	qsort.c \
 	timer.c \
 	nvme.c \
+	ivshmem.c \
 	virtual_media.c \
 	general_block.c \
 	aes_gcm.c \
