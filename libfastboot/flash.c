@@ -486,11 +486,6 @@ static struct label_exception {
 	{ L"kernel", flash_kernel },
 	{ L"ramdisk", flash_ramdisk },
 	{ ESP_LABEL, flash_esp },
-#ifndef USE_SBL
-	{ BOOTLOADER_LABEL, flash_bootloader },
-	{ BOOTLOADER_A_LABEL, flash_bootloader_a },
-	{ BOOTLOADER_B_LABEL, flash_bootloader_b },
-#endif
 #if defined(IOC_USE_SLCAN) || defined(IOC_USE_CBC)
 	{ L"ioc", flash_ioc },
 #endif
@@ -502,6 +497,7 @@ static struct label_exception {
 EFI_STATUS flash(VOID *data, UINTN size, CHAR16 *label)
 {
 	UINTN i;
+	CHAR16 *full_label;
 
 #ifndef USER
 	/* special case for writing inside esp partition */
@@ -514,7 +510,14 @@ EFI_STATUS flash(VOID *data, UINTN size, CHAR16 *label)
 		if (!StrCmp(LABEL_EXCEPTIONS[i].name, label))
 			return LABEL_EXCEPTIONS[i].flash_func(data, size);
 
-	return flash_partition(data, size, label);
+	full_label = (CHAR16 *)slot_label(label);
+
+	if (!full_label) {
+		error(L"invalid bootloader label");
+		return EFI_INVALID_PARAMETER;
+	}
+
+	return flash_partition(data, size, full_label);
 }
 
 EFI_STATUS flash_file(EFI_HANDLE image, CHAR16 *filename, CHAR16 *label)
