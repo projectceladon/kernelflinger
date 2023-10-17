@@ -283,6 +283,7 @@ const CHAR16 *slot_label(const CHAR16 *base)
 {
 	const CHAR16 *label;
 	UINTN nb_slot;
+	char *suffix;
 
 	if (!use_slot())
 		return base;
@@ -298,10 +299,11 @@ const CHAR16 *slot_label(const CHAR16 *base)
 		return base;
 	}
 
-	if (!base || !slot_get_active())
-		return NULL;
+	suffix = (char *)slot_get_active();
+	if (!suffix)
+		suffix = suffixes[0];
 
-	label = label_with_suffix(base, slot_get_active());
+	label = label_with_suffix(base, suffix);
 
 	return label;
 }
