@@ -594,10 +594,12 @@ static enum boot_target choose_boot_target(CHAR16 **target_path, BOOLEAN *onesho
 	if (ret != NORMAL_BOOT)
 		goto out;
 
+#ifndef USE_SBL
 	debug(L"Bootlogic: Check battery insertion...");
 	ret = check_battery_inserted();
 	if (ret != NORMAL_BOOT)
 		goto out;
+#endif
 
 	debug(L"Bootlogic: Check BCB...");
 	ret = check_bcb(target_path, oneshot);
@@ -621,6 +623,7 @@ static enum boot_target choose_boot_target(CHAR16 **target_path, BOOLEAN *onesho
 	if (ret != DNX && ret != NORMAL_BOOT)
 		goto out;
 
+#ifndef USE_SBL
 	debug(L"Bootlogic: Check battery level...");
 	ret = check_battery();
 
@@ -636,6 +639,7 @@ static enum boot_target choose_boot_target(CHAR16 **target_path, BOOLEAN *onesho
 
 	debug(L"Bootlogic: Check charger insertion...");
 	ret = check_charge_mode();
+#endif
 
 out:
 	debug(L"Bootlogic: selected '%s'",  boot_target_description(ret));
@@ -1245,10 +1249,12 @@ EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table)
 		}
 	}
 
+#ifndef USE_SBL
 	uefi_bios_update_capsule(g_disk_device, FWUPDATE_FILE);
 
 	uefi_check_upgrade(g_loaded_image, BOOTLOADER_LABEL, KFUPDATE_FILE,
 			BOOTLOADER_FILE, BOOTLOADER_FILE_BAK, KFSELF_FILE, KFBACKUP_FILE);
+#endif
 
 #ifdef USE_IVSHMEM
 	ret = ivshmem_init();
