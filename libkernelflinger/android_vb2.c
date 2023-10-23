@@ -280,6 +280,7 @@ EFI_STATUS get_avb_result(
 
 EFI_STATUS android_install_acpi_table_avb(AvbSlotVerifyData *slot_data)
 {
+#if 0
         const char *acpi_part_names[] = {
 #ifdef USE_ACPI
                 "acpi",
@@ -288,6 +289,7 @@ EFI_STATUS android_install_acpi_table_avb(AvbSlotVerifyData *slot_data)
                 "acpio",
 #endif
                 NULL};
+#endif
         VOID *image = NULL;
         EFI_STATUS ret = EFI_SUCCESS;
         struct boot_img_hdr *hdr;
@@ -306,6 +308,8 @@ EFI_STATUS android_install_acpi_table_avb(AvbSlotVerifyData *slot_data)
                 }
         }
 
+        debug(L"Skip install apci table....\n");
+#if 0
         for (int i = 0; acpi_part_names[i] != NULL; i++) {
                 ret = android_query_image_from_avb_result(slot_data,
                                                     acpi_part_names[i], &image);
@@ -321,6 +325,7 @@ EFI_STATUS android_install_acpi_table_avb(AvbSlotVerifyData *slot_data)
                         return ret;
                 }
         }
+#endif
         return ret;
 }
 

@@ -1892,7 +1892,11 @@ EFI_STATUS android_image_load_file(
                 goto out;
         }
 
+        log(L"Skip install acpi table.\n");
+
+#if 0
         ret = android_install_acpi_table();
+#endif
 
 out:
         if (delete) {
