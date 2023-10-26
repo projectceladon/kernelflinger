@@ -1267,10 +1267,7 @@ static EFI_STATUS setup_command_line(
         CHAR16 *cmdline16 = NULL;
         char   *serialno = NULL;
         CHAR16 *serialport = NULL;
-#ifndef USE_SBL
-	//todo: support boot reason
         CHAR16 *bootreason = NULL;
-#endif
         EFI_PHYSICAL_ADDRESS cmdline_addr;
         CHAR8 *cmdline;
         CHAR8 *cmd_conf= NULL;
@@ -1326,11 +1323,13 @@ static EFI_STATUS setup_command_line(
                         goto out;
         }
 #ifndef USE_SBL
-	//todo: support boot reason
         if (is_uefi)
                 bootreason = get_boot_reason();
         else
                 bootreason = get_reboot_reason();
+#else
+        bootreason = get_sbl_boot_reason();
+#endif
 
         if (!bootreason) {
                 ret = EFI_OUT_OF_RESOURCES;
@@ -1340,7 +1339,6 @@ static EFI_STATUS setup_command_line(
         ret = prepend_command_line(&cmdline16, L"androidboot.bootreason=%s", bootreason);
         if (EFI_ERROR(ret))
                 goto out;
-#endif
         ret = prepend_command_line(&cmdline16, L"androidboot.verifiedbootstate=%s",
                                    boot_state_to_string(boot_state));
         if (EFI_ERROR(ret))

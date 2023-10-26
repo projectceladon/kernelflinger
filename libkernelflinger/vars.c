@@ -66,6 +66,7 @@
 
 #define ANDROID_PROP_VALUE_MAX	92
 #define REBOOT_REASON_MAX 	64
+#define SBL_RESET_REASON "reset"
 
 /* Default maximum number of watchdog resets in a row before the crash
  * event menu is displayed. */
@@ -870,6 +871,20 @@ bad:
 	strncpy_s((CHAR8 *)serialno, sizeof(serialno), (CHAR8 *)"00badbios00badbios00", SERIALNO_MAX_SIZE);
 	return serialno;
 }
+
+#ifdef USE_SBL
+CHAR16 *get_sbl_boot_reason(){
+	const char *reason;
+	CHAR16 *ret;
+
+	reason = ewarg_getval(SBL_RESET_REASON);
+	if (!reason)
+		return L"unknown";
+	//convert to CHAR16
+	ret = stra_to_str((CHAR8 *)reason);
+	return ret;
+}
+#endif
 
 CHAR16 *get_reboot_reason()
 {
