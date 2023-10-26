@@ -406,7 +406,7 @@ EFI_STATUS ivshmem_init(void)
 
 	if (g_ivshmem_dev.revision == 1) {
 		info(L"IVSHMEM device: ivposition=%d",
-			io_read_32((void *)(g_ivshmem_dev.bar0_addr + IVPOSITION_OFF)));
+			io_read_32((void *)((UINT64)(g_ivshmem_dev.bar0_addr + IVPOSITION_OFF))));
 	}
 
 	return EFI_SUCCESS;
