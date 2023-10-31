@@ -1375,20 +1375,25 @@ static EFI_STATUS setup_command_line(
 		UINT32 disk_bus_num, storage_bus_num;
 
 		disk_bus_num = get_bootdev_diskbus();
-		debug(L"nvme controller diskbus = %x\n", disk_bus_num);
+		debug(L"diskbus = %x", disk_bus_num);
 
-		storage_bus_num = disk_bus_num>>16;
+		storage_bus_num = disk_bus_num >> 16;
+                if (storage_bus_num == 0) {
+                        bdf = (disk_bus_num >> 8);
+                } else {
+                        bdf = bridge_diskbus(storage_bus_num);
+                        if (bdf < 0) {
+                                error(L"No pci bridge found");
+                                ret = EFI_INVALID_PARAMETER;
+                                goto out;
+                        }
+                }
 
-		bdf = bridge_diskbus(storage_bus_num);
-		if (bdf < 0) {
-			error(L"No pci bridge found, assue bus is 0");
-			bdf = 0;
-		}
-
-                diskbus = PoolPrint(L"%02x.%x", (bdf>>3)&0x1f, bdf&0x7);
+                diskbus = PoolPrint(L"%02x.%x", (bdf >> 3) & 0x1f, bdf & 0x7);
+                debug(L"pci boot device: device = %x func = %x", (bdf >> 3) & 0x1f, bdf & 0x7);
 #else
                 diskbus = PoolPrint(L"%02x.%x", boot_device->Device, boot_device->Function);
-                debug(L"pci bridge: device = %x func = %x \n", boot_device->Device, boot_device->Function);
+                debug(L"pci boot device: device = %x func = %x", boot_device->Device, boot_device->Function);
 #endif
 #else
                 diskbus = PoolPrint(L"%a", (CHAR8 *)PREDEF_DISK_BUS);
