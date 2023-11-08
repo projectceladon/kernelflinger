@@ -822,10 +822,6 @@ char *get_serial_number(void)
 		return serialno;
 
 	SMBIOS_TO_BUFFER(bios_serialno, TYPE_PRODUCT, SerialNumber);
-	SMBIOS_TO_BUFFER(bios_serialno, TYPE_CHASSIS, SerialNumber);
-	SMBIOS_TO_BUFFER(bios_serialno, TYPE_BOARD, SerialNumber);
-	SMBIOS_TO_BUFFER(bios_serialno, TYPE_CHASSIS, AssetTag);
-
 	if (!bios_serialno[0]) {
 		error(L"couldn't read serial number from SMBIOS");
 		goto bad;
@@ -842,7 +838,7 @@ char *get_serial_number(void)
 		goto bad;
 	}
 
-	efi_snprintf((CHAR8*)serialno, SERIALNO_MAX_SIZE, (CHAR8*) "%a", bios_serialno);
+	efi_snprintf((CHAR8*)serialno, SERIALNO_MID_SIZE + 1, (CHAR8*) "%a", bios_serialno);
 
 	for (pos = serialno; *pos; pos++) {
 		/* Replace foreign characters with zeroes */

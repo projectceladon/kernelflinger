@@ -78,6 +78,7 @@ extern const EFI_GUID fastboot_guid;
 #endif
 
 #define SERIALNO_MIN_SIZE	6
+#define SERIALNO_MID_SIZE	8
 #define SERIALNO_MAX_SIZE	20
 
 /* Various interesting partition labels */
