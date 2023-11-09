@@ -44,6 +44,9 @@
 #define IVPOSITION_OFF	0x08
 #define DOORBELL_OFF	0x0C
 
+#define ROT_INTERRUPT			0x1
+#define ROLLBACK_INDEX_INTERRUPT	0x2
+
 #define IVSHMEM_DEFAULT_SIZE	0x400000
 #define IVSHMEM_ROT_OFFSET	0x100000
 
@@ -157,7 +160,22 @@ typedef union {
 	UINT32 uint32;
 } __attribute__((packed))  pci_config_address_t;
 
-struct ivshmem_device g_ivshmem_dev;
+struct ivshmem_device {
+	UINT8 dev;
+	UINT8 func;
+	UINT8 revision;
+
+	UINT32 bar0_addr;
+	UINT32 bar0_len;
+	UINT32 bar1_addr;
+	UINT32 bar1_len;
+	UINT32 bar2_addr;
+	UINT32 bar2_len;
+};
+
+static struct ivshmem_device g_ivshmem_dev;
+
+UINT64 g_ivshmem_rot_addr = 0;
 
 static UINT8 hw_read_port_8(UINT16 port)
 {
@@ -401,8 +419,8 @@ EFI_STATUS ivshmem_init(void)
 		return EFI_BUFFER_TOO_SMALL;
 	}
 
-	g_ivshmem_dev.rot_addr = g_ivshmem_dev.bar2_addr + IVSHMEM_ROT_OFFSET;
-	info(L"IVSHMEM device: rot_addr=0x%lx", g_ivshmem_dev.rot_addr);
+	g_ivshmem_rot_addr = g_ivshmem_dev.bar2_addr + IVSHMEM_ROT_OFFSET;
+	info(L"IVSHMEM device: rot_addr=0x%lx", g_ivshmem_rot_addr);
 
 	if (g_ivshmem_dev.revision == 1) {
 		info(L"IVSHMEM device: ivposition=%d",
@@ -410,4 +428,16 @@ EFI_STATUS ivshmem_init(void)
 	}
 
 	return EFI_SUCCESS;
+}
+
+void ivshmem_rot_interrupt(void)
+{
+	io_write_32((void *)((UINT64)(g_ivshmem_dev.bar0_addr + DOORBELL_OFF)),
+		ROT_INTERRUPT);
+}
+
+void ivshmem_rollback_index_interrupt(void)
+{
+	io_write_32((void *)((UINT64)(g_ivshmem_dev.bar0_addr + DOORBELL_OFF)),
+		ROLLBACK_INDEX_INTERRUPT);
 }

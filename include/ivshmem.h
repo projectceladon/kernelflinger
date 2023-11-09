@@ -36,21 +36,10 @@
 #include <stdbool.h>
 #include <lib.h>
 
-struct ivshmem_device {
-	UINT8 dev;
-	UINT8 func;
-	UINT8 revision;
-
-	UINT32 bar0_addr;
-	UINT32 bar0_len;
-	UINT32 bar1_addr;
-	UINT32 bar1_len;
-	UINT32 bar2_addr;
-	UINT32 bar2_len;
-
-	UINT64 rot_addr;
-};
-
 EFI_STATUS ivshmem_init(void);
+
+void ivshmem_rot_interrupt(void);
+
+void ivshmem_rollback_index_interrupt(void);
 
 #endif /* _IVSHMEM_H_ */
