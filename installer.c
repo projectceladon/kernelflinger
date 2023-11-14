@@ -750,12 +750,12 @@ static void installer_format(INTN argc, CHAR8 **argv)
 	UINTN size;
 	CHAR16 *filename;
 
-	if (argc != 2) {
-		fastboot_fail("Format command requires exactly 2 arguments");
+	if (argc != 2 && argc != 3) {
+		fastboot_fail("Format command requires 2 or 3 arguments");
 		return;
 	}
 
-	filename = get_format_image_filename(argv[1]);
+	filename = get_format_image_filename(argv[argc - 1]);
 	if (!filename)
 		return;
 
@@ -768,10 +768,11 @@ static void installer_format(INTN argc, CHAR8 **argv)
 		goto free_filename;
 	}
 
-	argv[1] = get_target(argv[1]);
+	argv[1] = get_target(argv[argc - 1]);
 	if (!argv[1])
 		goto free_data;
 
+	argc = 2;
 	do_erase(argc, argv);
 	if (!last_cmd_succeeded)
 		goto free_data;
