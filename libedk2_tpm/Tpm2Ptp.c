@@ -19,6 +19,7 @@
 #include <IndustryStandard/Tpm2Acpi.h>
 #include <IoLib.h>
 #include <RegisterFilterLib.h>
+#include "lib.h"
 
 typedef enum {
   PtpInterfaceTis,
@@ -90,8 +91,7 @@ PtpCrbWaitRegisterBits (
     if ((RegRead & BitSet) == BitSet && (RegRead & BitClear) == 0) {
       return EFI_SUCCESS;
     }
-    //todo
-    //MicroSecondDelay (30);
+    pause_us(30);
   }
   return EFI_TIMEOUT;
 }
