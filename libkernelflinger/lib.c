@@ -67,6 +67,7 @@
 #include <efilib.h>
 
 #include "lib.h"
+#include "timer.h"
 #include "vars.h"
 
 
@@ -1298,6 +1299,17 @@ VOID pause(UINTN seconds)
         uefi_call_wrapper(BS->Stall, 1, seconds * 1000000);
 }
 
+VOID pause_us(UINTN microseconds)
+{
+        UINT64 total_tick;
+        if (microseconds > 10 * 1000000)
+                microseconds = 10 * 1000000;
+
+        total_tick = rdtsc() + get_cpu_freq() * microseconds;
+        while (rdtsc() < total_tick) {
+                asm volatile ("pause");
+        }
+}
 
 VOID halt_system(VOID)
 {

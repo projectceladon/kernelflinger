@@ -236,6 +236,7 @@ void StrToLower(CHAR16 *s);
 VOID halt_system(VOID) __attribute__ ((noreturn));
 
 VOID pause(UINTN seconds);
+VOID pause_us(UINTN microseconds);
 
 VOID reboot(CHAR16 *target, EFI_RESET_TYPE type) __attribute__ ((noreturn));
 

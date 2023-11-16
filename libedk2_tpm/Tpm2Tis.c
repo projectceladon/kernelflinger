@@ -14,6 +14,7 @@
 #include <PcdLib.h>
 
 #include <IndustryStandard/TpmTis.h>
+#include "lib.h"
 
 #define TIS_TIMEOUT_MAX             (90000 * 1000)  // 90s
 
@@ -68,7 +69,7 @@ TisPcWaitRegisterBits (
     if ((RegRead & BitSet) == BitSet && (RegRead & BitClear) == 0) {
       return EFI_SUCCESS;
     }
-    //MicroSecondDelay (30);
+    pause_us(30);
   }
   return EFI_TIMEOUT;
 }
@@ -110,7 +111,7 @@ TisPcReadBurstCount (
     if (*BurstCount != 0) {
       return EFI_SUCCESS;
     }
-   // MicroSecondDelay (30);
+    pause_us(30);
     WaitTime += 30;
   } while (WaitTime < TIS_TIMEOUT_D);
 

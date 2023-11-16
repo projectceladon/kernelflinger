@@ -35,7 +35,7 @@ LOCAL_SRC_FILES += Tpm2DeviceLib.c
 endif
 
 LOCAL_C_INCLUDES := $(LOCAL_PATH)/include \
-                    $(LOCAL_PATH)/../include/libkernelflinger \
+                    $(LOCAL_PATH)/../include \
                     $(res_intermediates)
 
 include $(BUILD_EFI_STATIC_LIBRARY)
