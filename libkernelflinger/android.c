@@ -1283,6 +1283,10 @@ static EFI_STATUS setup_command_line(
         CHAR8 *abl_cmd_line = NULL;
         BOOLEAN is_uefi = TRUE;
         UINTN abl_cmd_len = 0;
+#ifdef USE_SBL
+        const char *cmd_for_kernel = NULL;
+        char *tmp = NULL;
+#endif
 
         is_uefi = is_UEFI();
 
@@ -1357,6 +1361,17 @@ static EFI_STATUS setup_command_line(
                 if (EFI_ERROR(ret))
                         goto out;
         }
+
+#ifdef USE_SBL
+        /* Append cmd_for_kernel */
+        cmd_for_kernel = get_cmd_for_kernel();
+        tmp = (char *)cmd_for_kernel;
+        while ((tmp = strchr(tmp, '\\')) != NULL) {
+                *tmp = ' ';
+                tmp++;
+        }
+        ret = prepend_command_line(&cmdline16, L"%a", cmd_for_kernel);
+#endif
 
 #ifndef USER
         if (get_disable_watchdog()) {
