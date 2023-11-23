@@ -154,6 +154,7 @@ CHAR16 *get_reboot_reason();
 #ifdef USE_SBL
 CHAR16 *get_sbl_boot_reason();
 const char *ewarg_getval(const char *name);
+const char *get_cmd_for_kernel();
 #endif
 BOOLEAN is_reboot_reason(CHAR16 *reason);
 VOID del_reboot_reason();

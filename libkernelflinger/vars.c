@@ -67,6 +67,7 @@
 #define ANDROID_PROP_VALUE_MAX	92
 #define REBOOT_REASON_MAX 	64
 #define SBL_RESET_REASON "reset"
+#define CMD_FOR_KERNEL   "cmd_for_kernel"
 
 /* Default maximum number of watchdog resets in a row before the crash
  * event menu is displayed. */
@@ -883,6 +884,10 @@ CHAR16 *get_sbl_boot_reason(){
 	//convert to CHAR16
 	ret = stra_to_str((CHAR8 *)reason);
 	return ret;
+}
+
+const char *get_cmd_for_kernel(){
+    return ewarg_getval(CMD_FOR_KERNEL);
 }
 #endif
 
