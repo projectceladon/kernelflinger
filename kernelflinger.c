@@ -918,6 +918,16 @@ static EFI_STATUS load_image(VOID *bootimage, VOID *vendorbootimage, UINT8 boot_
 		efi_perror(ret, L"Failed to set os secure boot");
 #endif
 
+#ifdef USE_IVSHMEM
+	if (is_bootimg_target(boot_target)) {
+		ret = ivsh_send_rot_data(bootimage, boot_state, vb_data);
+		if (EFI_ERROR(ret)) {
+			debug(L"Unable to send the root of trust data to optee");
+			die();
+		}
+	}
+#endif
+
 	/* install acpi tables before starting trusty */
 	ret = setup_acpi_table(bootimage, boot_target);
 	if (EFI_ERROR(ret)) {
@@ -949,11 +959,11 @@ static EFI_STATUS load_image(VOID *bootimage, VOID *vendorbootimage, UINT8 boot_
 			die();
 		}
 
-                ret = update_attestation_ids(vendorbootimage);
-                if (EFI_ERROR(ret)) {
-                        efi_perror(ret, L"Unable to get the attestation ids for trusty");
-                        die();
-                }
+		ret = update_attestation_ids(vendorbootimage);
+		if (EFI_ERROR(ret)) {
+			efi_perror(ret, L"Unable to get the attestation ids for trusty");
+			die();
+		}
 
 		set_boottime_stamp(TM_LOAD_TOS_DONE);
 		ret = start_trusty(tosimage);
