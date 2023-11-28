@@ -843,7 +843,7 @@ char *get_serial_number(void)
 		goto bad;
 	}
 
-	efi_snprintf((CHAR8*)serialno, SERIALNO_MAX_SIZE, (CHAR8*) "%a", bios_serialno);
+	efi_snprintf((CHAR8*)serialno, SERIALNO_MAX_SIZE + 1, (CHAR8*) "%a", bios_serialno);
 
 	for (pos = serialno; *pos; pos++) {
 		/* Replace foreign characters with zeroes */
