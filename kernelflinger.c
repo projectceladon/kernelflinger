@@ -1250,8 +1250,6 @@ EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table)
 	uefi_check_upgrade(g_loaded_image, BOOTLOADER_LABEL, KFUPDATE_FILE,
 			BOOTLOADER_FILE, BOOTLOADER_FILE_BAK, KFSELF_FILE, KFBACKUP_FILE);
 
-	need_lock = device_need_locked();
-
 #ifdef USE_IVSHMEM
 	ret = ivshmem_init();
 	if (EFI_ERROR(ret) && ret != EFI_NOT_FOUND) {
@@ -1269,6 +1267,8 @@ EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table)
 		}
 	}
 #endif
+
+	need_lock = device_need_locked();
 
 	/* For civ, flash images to disk is not MUST. So set device to LOCKED
 	 * state by default on the first boot.

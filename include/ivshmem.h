@@ -36,10 +36,29 @@
 #include <stdbool.h>
 #include <lib.h>
 
+#define TEE_TPM2_INIT                   0x00000001
+#define TEE_TPM2_END                    0x00000002
+#define TEE_TPM2_READ_DEVICE_STATE      0x00000003
+#define TEE_TPM2_WRITE_DEVICE_STATE     0x00000004
+#define TEE_TPM2_READ_ROLLBACK_INDEX    0x00000005
+#define TEE_TPM2_WRITE_ROLLBACK_INDEX   0x00000006
+#define TEE_TPM2_BOOTLOADER_NEED_INIT   0x00000007
+#define TEE_TPM2_FUSE_LOCK_OWNER        0x00000008
+#define TEE_TPM2_FUSE_PROVISION_SEED    0x00000009
+#define TEE_TPM2_SHOW_INDEX             0x0000000A
+#define TEE_TPM2_DELETE_INDEX           0x0000000B
+
 EFI_STATUS ivshmem_init(void);
 
 void ivshmem_rot_interrupt(void);
 
-void ivshmem_rollback_index_interrupt(void);
+struct tpm2_int_req {
+        UINT32 cmd;
+        volatile INT32 ret;
+        UINT32 size;
+        UINT8  payload[0];
+};
+
+void ivshmem_rollback_index_interrupt(struct tpm2_int_req* req);
 
 #endif /* _IVSHMEM_H_ */
