@@ -1523,11 +1523,17 @@ EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table)
 
 	need_lock = device_need_locked();
 
+#ifndef USER
+	/* WA patch to set device as unlocked by default for userdebug build
+	 */
+	set_current_state(UNLOCKED);
+#else
 	/* For civ, flash images to disk is not MUST. So set device to LOCKED
 	 * state by default on the first boot.
 	*/
 	if (need_lock)
 		set_current_state(LOCKED);
+#endif
 
 	ret = set_device_security_info(NULL);
 	if (EFI_ERROR(ret)) {
