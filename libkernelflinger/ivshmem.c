@@ -436,8 +436,38 @@ void ivshmem_rot_interrupt(void)
 		ROT_INTERRUPT);
 }
 
-void ivshmem_rollback_index_interrupt(void)
+#define NOT_READY_MAGIC 0x12ABCDEF
+
+void ivshmem_rollback_index_interrupt(struct tpm2_int_req* req)
 {
-	io_write_32((void *)((UINT64)(g_ivshmem_dev.bar0_addr + DOORBELL_OFF)),
-		ROLLBACK_INDEX_INTERRUPT);
+	if (NULL == req)
+		return;
+
+	if (0 == g_ivshmem_rot_addr) {
+		debug(L"Error! ivshmem is not initialized.");
+		return;
+	}
+
+	//offset 1 page reserved for rot.
+	UINT64 rollback_index_addr = g_ivshmem_rot_addr + 0x1000;
+	struct tpm2_int_req * p_req = (struct tpm2_int_req *)rollback_index_addr;
+
+	req->ret = NOT_READY_MAGIC;
+	UINT32 req_size = sizeof(struct tpm2_int_req) + req->size;
+	if (req_size > 0x1000) {
+		info(L"req size is too large(0x%X), abort...", req_size);
+		return;
+	}
+	memcpy(p_req, req, req_size);
+
+	io_write_32((void *)((UINT64)(g_ivshmem_dev.bar0_addr + DOORBELL_OFF)), ROLLBACK_INDEX_INTERRUPT);
+
+	while (NOT_READY_MAGIC == p_req->ret) {
+		//just wait for int handler return
+	}
+
+	memcpy(req, p_req, req_size);
+
+	return;
 }
+
