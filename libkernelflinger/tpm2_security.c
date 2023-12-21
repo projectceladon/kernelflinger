@@ -57,9 +57,9 @@ EFI_STATUS tpm2_fuse_bootloader_policy(
 #ifndef USE_IVSHMEM
 
 enum NV_INDEX {
-	NV_INDEX_TRUSTYOS_SEED = 0x01500080,
-	NV_INDEX_OPTEEOS_SEED = 0x01500081,
-	NV_INDEX_BOOTLOADER = 0x01500082,
+	NV_INDEX_TRUSTYOS_SEED = 0x01500090,
+	NV_INDEX_OPTEEOS_SEED = 0x01500091,
+	NV_INDEX_BOOTLOADER = 0x01500092,
 };
 
 #define MAX_NV_NUMBER		ARRAY_SIZE(config_table)
@@ -101,7 +101,7 @@ static const attribute_matrix_t config_table[] =
 	{NV_INDEX_OPTEEOS_SEED,
 		{
 		/* The Index data can be written if Owner Authorization is provided. */
-		.TPMA_NV_OWNERWRITE = 1,
+		.TPMA_NV_NO_DA = 1,
 		/* Authorizations to change the Index contents that require
 			* USER role may be provided with an HMAC session or password.
 		*/
@@ -121,11 +121,12 @@ static const attribute_matrix_t config_table[] =
 			* Reads of this Index are blocked until the next TPM Reset or TPM Restart.
 			*/
 		.TPMA_NV_READ_STCLEAR = 1,
+		.TPMA_NV_WRITE_STCLEAR = 1,
 		}
 	},
     {NV_INDEX_BOOTLOADER,
 		{
-		.TPMA_NV_OWNERWRITE = 1,
+		.TPMA_NV_NO_DA = 1,
 		.TPMA_NV_AUTHWRITE = 1,
 		.TPMA_NV_AUTHREAD = 1,
 		.TPMA_NV_WRITE_STCLEAR = 1,
