@@ -858,6 +858,11 @@ EFI_STATUS tpm2_init(void)
 	req.cmd = TEE_TPM2_INIT;
 	ivshmem_rollback_index_interrupt(&req);
 
+	if (EFI_ERROR(req.ret)) {
+		efi_perror(req.ret, L"TPM init failed.");
+		return req.ret;
+	}
+
 	if (is_platform_secure_boot_enabled())
 		debug(L"TPM init OK. Secure boot ENABLED.");
 	else
@@ -972,7 +977,11 @@ EFI_STATUS tpm2_delete_index(__attribute__((unused)) UINT32 index)
 
 EFI_STATUS tpm2_fuse_lock_owner(void)
 {
-	return EFI_NOT_READY;
+	struct tpm2_int_req req = {0};
+	req.cmd = TEE_TPM2_FUSE_LOCK_OWNER;
+	ivshmem_rollback_index_interrupt(&req);
+
+	return req.ret;
 }
 
 EFI_STATUS tpm2_fuse_provision_seed(void)
