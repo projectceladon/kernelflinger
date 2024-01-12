@@ -1249,6 +1249,18 @@ UINT32 __attribute__((weak)) get_bootdev_diskbus()
 	return 0;
 
 }
+
+static INT32 diskbus_to_bdf(UINT32 diskbus)
+{
+        UINT32 storage_bus_num;
+
+        storage_bus_num = diskbus >> 16;
+        if (storage_bus_num == 0) {
+                return (diskbus >> 8);
+        }
+
+        return bridge_diskbus(storage_bus_num);
+}
 #endif
 
 /* when we call setup_command_line in EFI, parameter is EFI_GUID *swap_guid.
@@ -1386,22 +1398,13 @@ static EFI_STATUS setup_command_line(
                 CHAR16 *diskbus = NULL;
 #ifdef AUTO_DISKBUS
 #ifdef USE_SBL
-		INT32 bdf;
-		UINT32 disk_bus_num, storage_bus_num;
+                INT32 bdf;
 
-		disk_bus_num = get_bootdev_diskbus();
-		debug(L"diskbus = %x", disk_bus_num);
-
-		storage_bus_num = disk_bus_num >> 16;
-                if (storage_bus_num == 0) {
-                        bdf = (disk_bus_num >> 8);
-                } else {
-                        bdf = bridge_diskbus(storage_bus_num);
-                        if (bdf < 0) {
-                                error(L"No pci bridge found");
-                                ret = EFI_INVALID_PARAMETER;
-                                goto out;
-                        }
+                bdf = diskbus_to_bdf(get_bootdev_diskbus());
+                if (bdf < 0) {
+                        error(L"No pci bridge found");
+                        ret = EFI_INVALID_PARAMETER;
+                        goto out;
                 }
 
                 diskbus = PoolPrint(L"%02x.%x", (bdf >> 3) & 0x1f, bdf & 0x7);
