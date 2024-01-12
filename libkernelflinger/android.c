@@ -1409,6 +1409,30 @@ static EFI_STATUS setup_command_line(
 
                 diskbus = PoolPrint(L"%02x.%x", (bdf >> 3) & 0x1f, bdf & 0x7);
                 debug(L"pci boot device: device = %x func = %x", (bdf >> 3) & 0x1f, bdf & 0x7);
+#ifdef HAS_2ND_BOOTDEV
+                UINT32 secondary_diskbus;
+                const char *secondary_diskbus_arg;
+                INT32 bdf2;
+                CHAR16* diskbus2 = NULL;
+
+                secondary_diskbus_arg = ewarg_getval("secondary_diskbus");
+                if (!secondary_diskbus_arg) {
+                        error(L"No secondary diskbus provided");
+                        ret = EFI_INVALID_PARAMETER;
+                        goto out;
+                }
+
+                secondary_diskbus = (UINT32)strtoull(secondary_diskbus_arg, NULL, 16);
+                bdf2 = diskbus_to_bdf(secondary_diskbus);
+                if (bdf2 < 0) {
+                        error(L"No pci bridge found");
+                        ret = EFI_INVALID_PARAMETER;
+                        goto out;
+                }
+
+                diskbus2 = PoolPrint(L"%02x.%x", (bdf2 >> 3) & 0x1f, bdf2 & 0x7);
+                debug(L"pci secondary boot device: device = %x func = %x", (bdf2 >> 3) & 0x1f, bdf2 & 0x7);
+#endif
 #else
                 diskbus = PoolPrint(L"%02x.%x", boot_device->Device, boot_device->Function);
                 debug(L"pci boot device: device = %x func = %x", boot_device->Device, boot_device->Function);
@@ -1416,6 +1440,15 @@ static EFI_STATUS setup_command_line(
 #else
                 diskbus = PoolPrint(L"%a", (CHAR8 *)PREDEF_DISK_BUS);
 #endif
+#ifdef HAS_2ND_BOOTDEV
+                StrToLower(diskbus);
+                StrToLower(diskbus2);
+                ret = prepend_command_line(&cmdline16,
+                                           L"androidboot.boot_devices=pci0000:00/0000:00:%s,pci0000:00/0000:00:%s pci=noaer",
+                                           diskbus, diskbus2);
+                FreePool(diskbus);
+                FreePool(diskbus2);
+#else
                 StrToLower(diskbus);
                 ret = prepend_command_line(&cmdline16,
                                            (aosp_header->header_version < 2)
@@ -1423,6 +1456,7 @@ static EFI_STATUS setup_command_line(
                                            : L"androidboot.boot_devices=pci0000:00/0000:00:%s pci=noaer",
                                            diskbus);
                 FreePool(diskbus);
+#endif
                 if (EFI_ERROR(ret))
                         goto out;
         } else
