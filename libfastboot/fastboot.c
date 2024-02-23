@@ -984,6 +984,28 @@ static void cmd_reboot(__attribute__((__unused__)) INTN argc,
 static void cmd_reboot_bootloader(__attribute__((__unused__)) INTN argc,
 				  __attribute__((__unused__)) CHAR8 **argv)
 {
+	EFI_STATUS ret;
+	struct bootloader_message bcb;
+
+	debug(L"Rebooting to bootloader ...");
+	ret = read_bcb(MISC_LABEL, &bcb);
+	if (EFI_ERROR(ret)) {
+		error(L"Unable to read BCB");
+		goto out;
+	}
+
+	ret = strcpy_s(bcb.command, sizeof(bcb.command), "bootonce-bootloader");
+	if (EFI_ERROR(ret))
+		goto out;
+	/* We own the status field; clear it in case there is any stale data */
+	bcb.status[0] = '\0';
+
+	ret = write_bcb(MISC_LABEL, &bcb);
+	if (EFI_ERROR(ret)) {
+		error(L"Unable to update BCB contents!");
+		goto out;
+	}
+out:
 	fastboot_reboot(FASTBOOT, L"Rebooting to bootloader ...");
 }
 
@@ -1073,6 +1095,8 @@ struct fastboot_cmd *fastboot_get_root_cmd(const char *name)
 void fastboot_run_cmd(cmdlist_t list, const char *name, INTN argc, CHAR8 **argv)
 {
 	struct fastboot_cmd *cmd;
+
+	debug(L"get command '%a'", name);
 
 	cmd = get_cmd(list, name);
 	if (!cmd) {
