@@ -1507,6 +1507,11 @@ EFI_STATUS fastboot_start(void **bootimage, void **efiimage, UINTN *imagesize,
 		ret = transport_run();
 		if (EFI_ERROR(ret) && ret != EFI_TIMEOUT) {
 			efi_perror(ret, L"Error occurred during transport run");
+#ifdef USE_SBL
+			error(L"fastboot restart due to transport error");
+			cmd_reboot_bootloader(0, NULL);
+			reboot_to_target(FASTBOOT, EfiResetCold);
+#endif
 			goto exit;
 		}
 
