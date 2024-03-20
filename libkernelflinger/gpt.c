@@ -712,7 +712,7 @@ static EFI_STATUS gpt_write_table_to_disk(struct gpt_header *gh)
 	UINT64 entries_offset, header_offset, entries_size;
 	EFI_STATUS ret;
 
-	entries_size = gh->number_of_entries * gh->size_of_entry;
+	entries_size = (UINT64) gh->number_of_entries * gh->size_of_entry;
 	header_offset = gh->my_lba * sdisk.bio->Media->BlockSize;
 	entries_offset = gh->entries_lba * sdisk.bio->Media->BlockSize;
 

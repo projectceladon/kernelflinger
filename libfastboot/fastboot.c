@@ -831,6 +831,7 @@ static void cmd_flash(INTN argc, CHAR8 **argv)
 
 	if (!can_erase_or_flash_partition(label)) {
 		fastboot_fail("Currently virtual a/b ota is in progress...");
+		FreePool(label);
 		return;
 	}
 
