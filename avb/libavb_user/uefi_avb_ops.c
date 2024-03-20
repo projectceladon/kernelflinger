@@ -46,6 +46,7 @@ static AvbIOResult read_from_partition(__attribute__((unused)) AvbOps* ops,
                                        size_t num_bytes,
                                        void* buf,
                                        size_t* out_num_read) {
+  AvbIOResult ret;
   EFI_STATUS efi_ret;
   struct gpt_partition_interface gpart;
   int64_t partition_size;
@@ -65,7 +66,8 @@ static AvbIOResult read_from_partition(__attribute__((unused)) AvbOps* ops,
   efi_ret = gpt_get_partition_by_label(label, &gpart, LOGICAL_UNIT_USER);
   if (EFI_ERROR(efi_ret)) {
     error(L"Partition %s not found", label);
-    return AVB_IO_RESULT_ERROR_NO_SUCH_PARTITION;
+    ret = AVB_IO_RESULT_ERROR_NO_SUCH_PARTITION;
+    goto failed;
   }
 
   partition_size =
@@ -75,7 +77,8 @@ static AvbIOResult read_from_partition(__attribute__((unused)) AvbOps* ops,
   if (offset_from_partition < 0) {
     if ((-offset_from_partition) > partition_size) {
       avb_error("Offset outside range.\n");
-      return AVB_IO_RESULT_ERROR_RANGE_OUTSIDE_PARTITION;
+      ret = AVB_IO_RESULT_ERROR_RANGE_OUTSIDE_PARTITION;
+      goto failed;
     }
     offset_from_partition = partition_size - (-offset_from_partition);
   }
@@ -100,10 +103,15 @@ static AvbIOResult read_from_partition(__attribute__((unused)) AvbOps* ops,
   if (EFI_ERROR(efi_ret)) {
     avb_error("Could not read from Disk.\n");
     *out_num_read = 0;
-    return AVB_IO_RESULT_ERROR_IO;
+    ret = AVB_IO_RESULT_ERROR_IO;
+    goto failed;
   }
-
+  FreePool((VOID *)label);
   return AVB_IO_RESULT_OK;
+
+failed:
+  FreePool((VOID *)label);
+  return ret;
 }
 
 static AvbIOResult write_to_partition(__attribute__((unused)) AvbOps* ops,
@@ -111,6 +119,7 @@ static AvbIOResult write_to_partition(__attribute__((unused)) AvbOps* ops,
                                       int64_t offset_from_partition,
                                       size_t num_bytes,
                                       const void* buf) {
+  AvbIOResult ret;
   EFI_STATUS efi_ret;
   struct gpt_partition_interface gpart;
   uint64_t partition_size;
@@ -128,7 +137,8 @@ static AvbIOResult write_to_partition(__attribute__((unused)) AvbOps* ops,
   efi_ret = gpt_get_partition_by_label(label, &gpart, LOGICAL_UNIT_USER);
   if (EFI_ERROR(efi_ret)) {
     error(L"Partition %s not found", label);
-    return AVB_IO_RESULT_ERROR_NO_SUCH_PARTITION;
+    ret = AVB_IO_RESULT_ERROR_NO_SUCH_PARTITION;
+    goto failed;
   }
 
   partition_size =
@@ -138,7 +148,8 @@ static AvbIOResult write_to_partition(__attribute__((unused)) AvbOps* ops,
   if (offset_from_partition < 0) {
     if ((-offset_from_partition) > (int)partition_size) {
       avb_error("Offset outside range.\n");
-      return AVB_IO_RESULT_ERROR_RANGE_OUTSIDE_PARTITION;
+      ret = AVB_IO_RESULT_ERROR_RANGE_OUTSIDE_PARTITION;
+      goto failed;
     }
     offset_from_partition = partition_size - (-offset_from_partition);
   }
@@ -148,7 +159,8 @@ static AvbIOResult write_to_partition(__attribute__((unused)) AvbOps* ops,
    */
   if (num_bytes > partition_size - offset_from_partition) {
     avb_error("Cannot write beyond partition boundary.\n");
-    return AVB_IO_RESULT_ERROR_RANGE_OUTSIDE_PARTITION;
+    ret = AVB_IO_RESULT_ERROR_RANGE_OUTSIDE_PARTITION;
+    goto failed;
   }
 
   efi_ret = uefi_call_wrapper(
@@ -163,10 +175,15 @@ static AvbIOResult write_to_partition(__attribute__((unused)) AvbOps* ops,
 
   if (EFI_ERROR(efi_ret)) {
     avb_error("Could not write to Disk.\n");
-    return AVB_IO_RESULT_ERROR_IO;
+    ret = AVB_IO_RESULT_ERROR_IO;
+    goto failed;
   }
-
+  FreePool((VOID *)label);
   return AVB_IO_RESULT_OK;
+
+failed:
+  FreePool((VOID *)label);
+  return ret;
 }
 
 static AvbIOResult get_size_of_partition(__attribute__((unused)) AvbOps* ops,
@@ -188,6 +205,7 @@ static AvbIOResult get_size_of_partition(__attribute__((unused)) AvbOps* ops,
   efi_ret = gpt_get_partition_by_label(label, &gpart, LOGICAL_UNIT_USER);
   if (EFI_ERROR(efi_ret)) {
     error(L"Partition %s not found", label);
+    FreePool((VOID *)label);
     return AVB_IO_RESULT_ERROR_NO_SUCH_PARTITION;
   }
 
@@ -198,7 +216,7 @@ static AvbIOResult get_size_of_partition(__attribute__((unused)) AvbOps* ops,
   if (out_size != NULL) {
     *out_size = partition_size;
   }
-
+  FreePool((VOID *)label);
   return AVB_IO_RESULT_OK;
 }
 
@@ -299,6 +317,7 @@ static AvbIOResult get_unique_guid_for_partition(__attribute__((unused)) AvbOps*
                                                  const char* partition,
                                                  char* guid_buf,
                                                  size_t guid_buf_size) {
+  AvbIOResult ret;
   EFI_STATUS efi_ret;
   struct gpt_partition_interface gpart;
   uint8_t * unique_guid;
@@ -318,12 +337,14 @@ static AvbIOResult get_unique_guid_for_partition(__attribute__((unused)) AvbOps*
   efi_ret = gpt_get_partition_by_label(label, &gpart, LOGICAL_UNIT_USER);
   if (EFI_ERROR(efi_ret)) {
     error(L"Partition %s not found", label);
-    return AVB_IO_RESULT_ERROR_IO;
+    ret = AVB_IO_RESULT_ERROR_IO;
+    goto failed;
   }
 
   if (guid_buf_size < 37) {
     avb_error("GUID buffer size too small.\n");
-    return AVB_IO_RESULT_ERROR_IO;
+    ret = AVB_IO_RESULT_ERROR_IO;
+    goto failed;
   }
 
   unique_guid =(uint8_t *)&(gpart.part.unique);
@@ -351,7 +372,13 @@ static AvbIOResult get_unique_guid_for_partition(__attribute__((unused)) AvbOps*
   set_hex(guid_buf + 32, unique_guid[14]);
   set_hex(guid_buf + 34, unique_guid[15]);
   guid_buf[36] = '\0';
+
+  FreePool((VOID *)label);
   return AVB_IO_RESULT_OK;
+
+failed:
+  FreePool((VOID *)label);
+  return ret;
 }
 
 AvbOps* uefi_avb_ops_new(void) {

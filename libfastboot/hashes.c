@@ -653,7 +653,7 @@ static EFI_STATUS get_ext4_len(struct gpt_partition_interface *gparti, UINT64 *l
 		debug(L"Ext4 invalid FS [%02x]", sb.s_state);
 		return EFI_INVALID_PARAMETER;
 	}
-	block_size = 1024 << sb.s_log_block_size;
+	block_size = (UINT64)1024 << sb.s_log_block_size;
 	len_blocks = ((UINT64) sb.s_blocks_count_hi << 32) + sb.s_blocks_count_lo;
 	*len = block_size * len_blocks;
 

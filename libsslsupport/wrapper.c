@@ -411,7 +411,7 @@ struct tm *gmtime_r(const time_t *timep, struct tm *tmp)
 
 	y = EPOCH_YEAR;
 	tdays = *timep / SECSPERDAY;
-	rem = *timep - tdays * SECSPERDAY;
+	rem = (long long) (*timep - tdays * SECSPERDAY);
 	while (tdays < 0 || tdays >= year_lengths[isleap(y)]) {
 		int newy;
 		time_t tdelta;
@@ -430,7 +430,7 @@ struct tm *gmtime_r(const time_t *timep, struct tm *tmp)
 			return NULL;
 		leapdays = leaps_thru_end_of(newy - 1) -
 			leaps_thru_end_of(y - 1);
-		tdays -= ((time_t) newy - y) * DAYSPERNYEAR;
+		tdays -= (time_t) (((time_t) newy - y) * DAYSPERNYEAR);
 		tdays -= leapdays;
 		y = newy;
 	}
@@ -439,7 +439,7 @@ struct tm *gmtime_r(const time_t *timep, struct tm *tmp)
 
 		seconds = tdays * SECSPERDAY;
 		tdays = seconds / SECSPERDAY;
-		rem += seconds - tdays * SECSPERDAY;
+		rem += seconds - (long long) tdays * SECSPERDAY;
 	}
 	 /* Given the range, we can now fearlessly cast... */
 	idays = tdays;

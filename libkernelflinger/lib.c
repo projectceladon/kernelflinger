@@ -645,7 +645,11 @@ char *strdup(const char *s)
 		return NULL;
 
 	ret = memcpy_s(new, size, s, size);
-	return (ret == EFI_SUCCESS) ? (new) : (NULL);
+    if (ret == EFI_SUCCESS) {
+        return new;
+    }
+    FreePool(new);
+    return NULL;
 }
 
 char *strcasestr(const char *s, const char *find)
@@ -1430,6 +1434,7 @@ EFI_STATUS memdump(void *dest, size_t dest_size, const void *source, size_t coun
 
         if (source == NULL) {
                 debug(L"<memcpy_s source NULL");
+                return EFI_INVALID_PARAMETER;
         }
 
         CopyMem(dest, source, (UINTN)count);
