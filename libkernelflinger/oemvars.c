@@ -231,6 +231,7 @@ static EFI_STATUS parse_line(char *line, VOID *context)
 
 	if (!memcmp(&ctx->guid, &fastboot_guid, sizeof(ctx->guid))) {
 		error(L"fastboot GUID is reserved for Kernelflinger use");
+		FreePool(varname);
 		return EFI_ACCESS_DENIED;
 	}
 

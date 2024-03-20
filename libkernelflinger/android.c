@@ -674,15 +674,17 @@ static EFI_STATUS setup_ramdisk(UINT8 *bootimage, UINT8 *vendorbootimage, UINT8 
                     goto out;
 
             if (androidcmd != NULL) {
-                    ret = addBootConfigParameters(androidcmd, androidcmd_size,
+                    int iret;
+                    iret = addBootConfigParameters(androidcmd, androidcmd_size,
                                     (UINTN)ramdisk_addr + rboffset, vendor_hdr->bootconfig_size);
-                    if (ret < 0) {
+                    if (iret < 0) {
                             ret = EFI_INVALID_PARAMETER;
                             goto out;
                     }
             } else {
-                    ret = addBootConfigTrailer((UINTN)ramdisk_addr + rboffset, vendor_hdr->bootconfig_size);
-                    if (ret < 0) {
+                    int iret;
+                    iret = addBootConfigTrailer((UINTN)ramdisk_addr + rboffset, vendor_hdr->bootconfig_size);
+                    if (iret < 0) {
                             ret = EFI_INVALID_PARAMETER;
                             goto out;
                     }
@@ -943,7 +945,7 @@ static CHAR16 *get_command_line(IN struct boot_img_hdr *aosp_header,
                     ret = memcpy_s(full_cmdline, sizeof(full_cmdline), aosp_header->cmdline,
                                    BOOT_ARGS_SIZE);
                     if (EFI_ERROR(ret))
-                            return NULL;
+                            goto failed;
 
                     /* if there is extra cmdline arguments */
                     if (aosp_header->extra_cmdline[0]) {
@@ -953,7 +955,7 @@ static CHAR16 *get_command_line(IN struct boot_img_hdr *aosp_header,
                             ret = memcpy_s(full_cmdline + offset, sizeof(full_cmdline),
                                            aosp_header->extra_cmdline, BOOT_EXTRA_ARGS_SIZE);
                             if (EFI_ERROR(ret))
-                                    return NULL;
+                                    goto failed;
                     }
                     cmdline16 = stra_to_str(full_cmdline);
                 } else {
@@ -962,7 +964,7 @@ static CHAR16 *get_command_line(IN struct boot_img_hdr *aosp_header,
                 }
 
                 if (!cmdline16)
-                        return NULL;
+                        goto failed;
 #ifndef USER
         } else {
                 error(L"Boot image command line overridden with '%s'", cmdline16);
@@ -1004,6 +1006,17 @@ static CHAR16 *get_command_line(IN struct boot_img_hdr *aosp_header,
 #endif
 
         return cmdline16;
+
+failed:
+#ifndef USER
+        if (cmdline_append) {
+                FreePool(cmdline_append);
+        }
+        if (cmdline_prepend) {
+                FreePool(cmdline_prepend);
+        }
+#endif
+        return NULL;
 }
 
 EFI_STATUS get_bootimage_2nd(VOID *bootimage, VOID **second, UINT32 *size)
@@ -1597,7 +1610,9 @@ out:
                 FreePool(serialport);
         if (time_str16)
                 FreePool(time_str16);
-
+        if (bootreason) {
+                FreePool(bootreason);
+        }
         return ret;
 }
 
@@ -1834,11 +1849,13 @@ EFI_STATUS android_image_load_file(
                         &SimpleFileSystemProtocol, (void **)&drive);
         if (EFI_ERROR(ret)) {
                 efi_perror(ret, L"HandleProtocol (SimpleFileSystemProtocol)");
+                FreePool(path);
                 return ret;
         }
         ret = uefi_call_wrapper(drive->OpenVolume, 2, drive, &root);
         if (EFI_ERROR(ret)) {
                 efi_perror(ret, L"OpenVolume");
+                FreePool(path);
                 return ret;
         }
 
@@ -1848,10 +1865,12 @@ EFI_STATUS android_image_load_file(
                         EFI_FILE_MODE_READ | EFI_FILE_MODE_WRITE, 0);
         if (EFI_ERROR(ret)) {
                 efi_perror(ret, L"Open");
+                FreePool(path);
                 return ret;
         }
         fileinfo = AllocatePool(buffersize);
         if (!fileinfo)
+                FreePool(path);
                 return EFI_OUT_OF_RESOURCES;
 
         ret = uefi_call_wrapper(imagefile->GetInfo, 4, imagefile,
@@ -1862,6 +1881,7 @@ EFI_STATUS android_image_load_file(
                 FreePool(fileinfo);
                 fileinfo = AllocatePool(buffersize);
                 if (!fileinfo)
+                        FreePool(path);
                         return EFI_OUT_OF_RESOURCES;
                 ret = uefi_call_wrapper(imagefile->GetInfo, 4, imagefile,
                         &EfiFileInfoId, &buffersize, fileinfo);
@@ -1934,6 +1954,7 @@ out:
         }
 
 out_free:
+        FreePool(path);
         FreePool(fileinfo);
         if (ret == EFI_SUCCESS) {
                 *bootimage_p = bootimage;
@@ -2050,7 +2071,7 @@ out_cmdline:
 #if DEBUG_MESSAGES
 VOID dump_bcb(IN struct bootloader_message *bcb)
 {
-        if (bcb->command && bcb->status)
+        if (bcb)
                 debug(L"BCB: cmd '%a' status '%a'", bcb->command, bcb->status);
 }
 #else
