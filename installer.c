@@ -151,8 +151,8 @@ out:
 
 static void installer_erase(INTN argc, CHAR8 **argv)
 {
-	if (argc != 2) {
-		fastboot_fail("Erase command requires exactly 2 arguments");
+	if (argc < 2) {
+		fastboot_fail("Erase command requires more than 1 arguments");
 		return;
 	}
 
@@ -756,9 +756,15 @@ static void installer_format(INTN argc, CHAR8 **argv)
 	UINTN size;
 	CHAR16 *filename;
 
-	if (argc != 2) {
-		fastboot_fail("Format command requires exactly 2 arguments");
+	if (argc < 2) {
+		fastboot_fail("Format command requires 2 more arguments");
 		return;
+	}
+
+	if (!strcmp("f2fs", (CHAR8 *)argv[1])) {
+		fastboot_info("Command: {format:%s userdata}", argv[1]);
+		argv++;
+		argc--;
 	}
 
 	filename = get_format_image_filename(argv[1]);
