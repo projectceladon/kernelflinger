@@ -1184,6 +1184,8 @@ EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table)
 	UINT8 boot_state = BOOT_STATE_GREEN;
 	VBDATA *vb_data = NULL;
 
+	//error(L"Entry");
+
 	set_boottime_stamp(TM_EFI_MAIN);
 	/* gnu-efi initialization */
 	InitializeLib(image, sys_table);
@@ -1194,6 +1196,7 @@ EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table)
 
 	debug(KERNELFLINGER_VERSION);
 
+	//error(L"OpenProtocol for loading image");
 	/* populate globals */
 	g_parent_image = image;
 	ret = uefi_call_wrapper(BS->OpenProtocol, 6, image,
@@ -1205,6 +1208,7 @@ EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table)
 	}
 	g_disk_device = g_loaded_image->DeviceHandle;
 
+	error(L"LoadImage");
 	/* loaded from mass storage (not DnX) */
 	if (g_disk_device) {
 		ret = storage_set_boot_device(g_disk_device);
@@ -1212,6 +1216,7 @@ EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table)
 			error(L"Failed to set boot device");
 	}
 
+	error(L"Set boot device");
 	// Set the boot device now
 	if (!get_boot_device_handle()) {
 		if (!get_boot_device()) {
@@ -1221,14 +1226,17 @@ EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table)
 		}
 	}
 
+	error(L"BIOS update");
 	uefi_bios_update_capsule(g_disk_device, FWUPDATE_FILE);
 
+	error(L"Check upgrade");
 	uefi_check_upgrade(g_loaded_image, BOOTLOADER_LABEL, KFUPDATE_FILE,
 			BOOTLOADER_FILE, BOOTLOADER_FILE_BAK, KFSELF_FILE, KFBACKUP_FILE);
 
 	need_lock = device_need_locked();
 
 #ifdef USE_TPM
+	error(L"TPM init");
 	if (!is_live_boot()) {
 		ret = tpm2_init();
 		if (EFI_ERROR(ret) && ret != EFI_NOT_FOUND) {
@@ -1238,18 +1246,21 @@ EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table)
 	}
 #endif
 
+	error(L"Set lock status");
 	/* For civ, flash images to disk is not MUST. So set device to LOCKED
 	 * state by default on the first boot.
 	*/
 	if (need_lock)
 		set_current_state(LOCKED);
 
+	error(L"Set device security info");
 	ret = set_device_security_info(NULL);
 	if (EFI_ERROR(ret)) {
 		efi_perror(ret, L"Failed to init security info, enter fastboot mode");
 		boot_target = FASTBOOT;
 	}
 
+	error(L"slot init");
 	ret = slot_init();
 	if (EFI_ERROR(ret)) {
 		efi_perror(ret, L"Slot management initialization failed");
@@ -1323,6 +1334,7 @@ EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table)
 	boot_state = BOOT_STATE_RED;
 #endif
 
+	error(L"entering EFI binary");
 	/* EFI binaries are validated by the BIOS */
 	if (boot_target == ESP_EFI_BINARY) {
 		debug(L"entering EFI binary");
@@ -1351,14 +1363,17 @@ EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table)
 
 	debug(L"Loading boot image");
 
+	error(L"Loading boot image");
 	set_boottime_stamp(TM_AVB_START);
 	acpi_set_boot_target(boot_target);
 
+	error(L"AVB check");
 	/* AVB check */
 	disable_slot_if_efi_loaded_slot_failed();
 	ret = avb_load_verify_boot_image(boot_target, target_path, &bootimage, oneshot, &boot_state, &vb_data);
 	avb_load_verify_vendor_boot_image(boot_target, &vendorbootimage);
 
+	error(L"set boottime stamp");
 	set_boottime_stamp(TM_VERIFY_BOOT_DONE);
 
 	if (boot_state == BOOT_STATE_RED) {
@@ -1368,6 +1383,7 @@ EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table)
 			boot_error(RED_STATE_CODE, boot_state, NULL, 0);
 	}
 
+	error(L"set boottime stamp with boot_target");
 	switch (boot_target) {
 	case RECOVERY:
 	case ESP_BOOTIMAGE:
@@ -1387,12 +1403,14 @@ EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table)
 		break;
 	}
 
+	error(L"load images");
 	ret = load_image(bootimage, vendorbootimage, boot_state, boot_target,
 			vb_data
 			);
 	if (EFI_ERROR(ret))
 		efi_perror(ret, L"Failed to start boot image");
 
+	error(L"reboot to target");
 	switch (boot_target) {
 	case NORMAL_BOOT:
 	case CHARGER:
