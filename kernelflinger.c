@@ -1238,7 +1238,7 @@ static EFI_STATUS load_image(VOID *bootimage, VOID *vendorbootimage, UINT8 boot_
 	ret = android_image_start_buffer(g_parent_image, bootimage, vendorbootimage,
 					boot_target, boot_state, NULL,
 					vb_data,
-					NULL);
+					cmd_buf);
 	if (EFI_ERROR(ret))
 		efi_perror(ret, L"Couldn't load Boot image");
 
