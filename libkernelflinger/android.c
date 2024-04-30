@@ -1561,14 +1561,35 @@ static EFI_STATUS setup_command_line(
                 cmd_conf[cmdlen] = 0;
         }
 
-        /* append command line from ABL */
+        /* prepand command line from ABL */
         if (abl_cmd_len > 0)
         {
-                cmd_conf[cmdlen] = ' ';
-                ret = memcpy_s(cmd_conf + cmdlen + 1, abl_cmd_len + 1, abl_cmd_line, abl_cmd_len + 1);
-                if (EFI_ERROR(ret)) {
+                CHAR8* new_cmd_conf = AllocatePool(cmdsize);
+                if (new_cmd_conf == NULL) {
+                        ret = EFI_OUT_OF_RESOURCES;
                         goto out;
                 }
+
+                ret = memcpy_s(new_cmd_conf, abl_cmd_len, abl_cmd_line, abl_cmd_len);
+                if (EFI_ERROR(ret)) {
+                        FreePool(new_cmd_conf);
+                        goto out;
+                }
+
+                if (cmdlen > 0) {
+                        new_cmd_conf[abl_cmd_len] = ' ';
+                        ret = memcpy_s(new_cmd_conf + abl_cmd_len + 1, cmdlen, cmd_conf, cmdlen);
+                        if (EFI_ERROR(ret)) {
+                                FreePool(new_cmd_conf);
+                                goto out;
+                        }
+                }
+
+                if (cmd_conf != NULL) {
+                        FreePool(cmd_conf);
+                }
+
+                cmd_conf = new_cmd_conf;
                 cmdlen += abl_cmd_len + 1;
                 cmd_conf[cmdlen] = '\0';
         }
