@@ -364,6 +364,10 @@ AvbSlotVerifyResult avb_append_options(
         // remapped by avb_manage_hashtree_error_mode().
         avb_assert_not_reached();
         break;
+      default:
+        // Handle unexpected value of resolved_hashtree_error_mode
+        avb_assert_not_reached();
+        break;
     }
     new_ret = avb_replace(
         slot_data->cmdline, "$(ANDROID_VERITY_MODE)", dm_verity_mode);
