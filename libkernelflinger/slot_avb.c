@@ -198,18 +198,21 @@ static EFI_STATUS select_highest_priority_slot(void)
 	slot_metadata_t *slot;
 
 	cur_suffix = NULL;
-	slot = highest_priority_slot();
-	if (!slot)
-		return EFI_NOT_FOUND;
+	for (;;) {
+		slot = highest_priority_slot();
+		if (!slot)
+			return EFI_NOT_FOUND;
 
-	if (slot->tries_remaining == 0 &&
-		slot->successful_boot == 0) {
-		ret = disable_slot(slot, TRUE);
-		if (EFI_ERROR(ret))
-			return ret;
+		if (slot->tries_remaining == 0 &&
+		    slot->successful_boot == 0) {
+			ret = disable_slot(slot, TRUE);
+			if (EFI_ERROR(ret))
+				return ret;
+		}
+
+		cur_suffix = suffixes[slot - slots];
+		break;
 	}
-
-	cur_suffix = suffixes[slot - slots];
 
 	return EFI_SUCCESS;
 }

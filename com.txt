@@ -1,3 +1,0 @@
-
-Tracked-On: OAM-105551
-Signed-off-by: Zheng, XianjunX <xianjunx.zheng@intel.com>

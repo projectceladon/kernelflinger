@@ -310,7 +310,8 @@ EFI_STATUS update_attestation_ids(IN VOID *vendorbootimage)
     attestation_ids.serialSize = (strlen(temp_serial) < ATTESTATION_ID_MAX_LENGTH) ? strlen(temp_serial) : ATTESTATION_ID_MAX_LENGTH;
     CopyMem(attestation_ids.serial, temp_serial, attestation_ids.serialSize);
 
-    FreePool(configChar);
+    if(configChar)
+        FreePool(configChar);
 
     return ret;
 }

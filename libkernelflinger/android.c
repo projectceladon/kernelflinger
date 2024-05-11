@@ -674,15 +674,15 @@ static EFI_STATUS setup_ramdisk(UINT8 *bootimage, UINT8 *vendorbootimage, UINT8 
                     goto out;
 
             if (androidcmd != NULL) {
-                    int iret = addBootConfigParameters(androidcmd, androidcmd_size,
+                    ret = addBootConfigParameters(androidcmd, androidcmd_size,
                                     (UINTN)ramdisk_addr + rboffset, vendor_hdr->bootconfig_size);
-                    if (iret < 0) {
+                    if (ret < 0) {
                             ret = EFI_INVALID_PARAMETER;
                             goto out;
                     }
             } else {
-                    int iret = addBootConfigTrailer((UINTN)ramdisk_addr + rboffset, vendor_hdr->bootconfig_size);
-                    if (iret < 0) {
+                    ret = addBootConfigTrailer((UINTN)ramdisk_addr + rboffset, vendor_hdr->bootconfig_size);
+                    if (ret < 0) {
                             ret = EFI_INVALID_PARAMETER;
                             goto out;
                     }
