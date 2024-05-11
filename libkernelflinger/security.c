@@ -202,14 +202,14 @@ EFI_STATUS update_rot_data(IN VOID *bootimage, IN UINT8 boot_state,
 
 #ifdef USE_IVSHMEM
 EFI_STATUS ivsh_send_rot_data(IN VOID *bootimage, IN UINT8 boot_state,
-                        IN VBDATA *vb_data)
+                        __attribute__((__unused__)) IN VBDATA *vb_data)
 {
     EFI_STATUS ret = EFI_SUCCESS;
 
     if (!g_ivshmem_rot_addr)
         return EFI_NOT_READY;
 
-    ret = update_rot_data(bootimage, boot_state, vb_data);
+    ret = update_rot_data(bootimage, boot_state, NULL);
     if (EFI_ERROR(ret)) {
         efi_perror(ret, L"Unable to update the root of trust data");
         return ret;
