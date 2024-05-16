@@ -18,4 +18,6 @@ typedef struct {
 #endif
 } pthread_rwlock_t;
 
+struct tm;
+
 #endif 	/* _OPENSSL_SUPPORT_H_ */

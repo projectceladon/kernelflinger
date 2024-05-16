@@ -196,7 +196,7 @@ static EVP_PKEY *get_rsa_pubkey(X509 *cert)
 	if (!pkey)
 		return NULL;
 
-	if (EVP_PKEY_RSA != EVP_PKEY_type(pkey->type)) {
+	if (EVP_PKEY_RSA != EVP_PKEY_type(EVP_PKEY_id(pkey))) {
 	        EVP_PKEY_free(pkey);
 		return NULL;
 	}
