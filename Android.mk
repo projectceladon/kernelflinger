@@ -387,7 +387,7 @@ BOOTLOADER_AVB_KEY_PATH := $(BOARD_AVB_KEY_PATH)
 endif
 
 $(ABL_AVB_PK): $(BOOTLOADER_AVB_KEY_PATH)
-	external/avb/avbtool extract_public_key --key $< --output $@
+	external/avb/avbtool.py extract_public_key --key $< --output $@
 
 $(ABL_PADDED_AVB_PK): $(ABL_AVB_PK)
 	$(call pad-binary, 4096)
