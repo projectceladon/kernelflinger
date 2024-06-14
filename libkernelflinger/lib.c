@@ -1309,7 +1309,7 @@ VOID pause_us(UINTN microseconds)
         if (microseconds > 10 * 1000000)
                 microseconds = 10 * 1000000;
 
-        total_tick = rdtsc() + get_cpu_freq() * microseconds;
+        total_tick = rdtsc() + (UINT64)get_cpu_freq() * microseconds;
         while (rdtsc() < total_tick) {
                 asm volatile ("pause");
         }
