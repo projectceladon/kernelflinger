@@ -133,7 +133,8 @@ LOCAL_SRC_FILES := \
 	aes_gcm.c \
 	vbmeta_ias.c \
 	android_vb2.c \
-	security_vb2.c
+	security_vb2.c \
+	embedded_controller.c
 
 ifeq ($(KERNELFLINGER_SUPPORT_USB_STORAGE),true)
 	LOCAL_SRC_FILES += usb_storage.c \

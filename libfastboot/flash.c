@@ -56,6 +56,7 @@
 #include "aes_gcm.h"
 #include "keybox_provision.h"
 #endif
+#include "embedded_controller.h"
 static struct gpt_partition_interface gparti;
 static UINT64 cur_offset;
 static BOOLEAN userdata_erased = FALSE;
@@ -208,6 +209,11 @@ static EFI_STATUS flash_gpt(VOID *data, UINTN size)
 static EFI_STATUS flash_gpt_gpp1(VOID *data, UINTN size)
 {
 	return _flash_gpt(data, size, LOGICAL_UNIT_FACTORY);
+}
+
+static EFI_STATUS flash_ec(VOID *data, UINTN size)
+{
+	return update_ec(data, size);
 }
 
 #ifndef USER
@@ -476,6 +482,7 @@ static struct label_exception {
 } LABEL_EXCEPTIONS[] = {
 	{ L"gpt", flash_gpt },
 	{ L"gpt-gpp1", flash_gpt_gpp1 },
+	{ L"ec", flash_ec },
 #ifndef USER
 	{ L"efirun", flash_efirun },
 	{ L"mbr", flash_mbr },
