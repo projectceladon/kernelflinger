@@ -1462,6 +1462,7 @@ EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table)
 	VBDATA *vb_data = NULL;
 
 	set_boottime_stamp(TM_EFI_MAIN);
+	start_tsc = __RDTSC();
 	/* gnu-efi initialization */
 	InitializeLib(image, sys_table);
 

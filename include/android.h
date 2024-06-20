@@ -32,6 +32,7 @@
 #define BOOT_ARGS_SIZE 512
 #define BOOT_EXTRA_ARGS_SIZE 1024
 
+extern UINT64 start_tsc;
 
 struct boot_img_hdr
 {
