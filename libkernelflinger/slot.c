@@ -545,7 +545,7 @@ EFI_STATUS slot_boot(enum boot_target target)
 		if (!get_slot_fallback())
 			return EFI_SUCCESS;
 
-		boot_ctrl.recovery_tries_remaining--;
+		boot_ctrl.recovery_tries_remaining=5;
 		return write_boot_ctrl();
 	}
 
@@ -562,7 +562,7 @@ EFI_STATUS slot_boot(enum boot_target target)
 	}
 
 	if (get_slot_fallback())
-		slot->tries_remaining--;
+		slot->tries_remaining=5;
 	boot_ctrl.recovery_tries_remaining = MAX_RETRIES;
 
 	return write_boot_ctrl();
