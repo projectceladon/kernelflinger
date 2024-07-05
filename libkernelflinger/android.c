@@ -1293,7 +1293,7 @@ static EFI_STATUS setup_command_line(
         char   *serialno = NULL;
         CHAR16 *serialport = NULL;
         CHAR16 *bootreason = NULL;
-        EFI_PHYSICAL_ADDRESS cmdline_addr;
+        EFI_PHYSICAL_ADDRESS cmdline_addr = 0;
         CHAR8 *cmdline;
         CHAR8 *cmd_conf= NULL;
         UINTN cmdlen;
@@ -1650,6 +1650,13 @@ out:
                 FreePool(time_str16);
         if (bootreason) {
                 FreePool(bootreason);
+        }
+        if (EFI_ERROR(ret) && cmdline_addr) {
+                if (is_uefi) {
+                        free_pages(cmdline_addr, EFI_SIZE_TO_PAGES(cmdsize));
+                } else {
+                        FreePool((void *)(UINTN)cmdline_addr);
+                }
         }
         return ret;
 }

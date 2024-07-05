@@ -521,8 +521,11 @@ static EFI_STATUS publish_partsize(void)
 	UINTN i;
 
 	ret = gpt_list_partition(&gparti, &part_count, LOGICAL_UNIT_USER);
-	if (EFI_ERROR(ret) || part_count == 0)
+	if (EFI_ERROR(ret) || part_count == 0) {
+		if (gparti)
+			FreePool(gparti);
 		return EFI_SUCCESS;
+	}
 
 	for (i = 0; i < part_count; i++) {
 		UINT64 size;
@@ -537,12 +540,16 @@ static EFI_STATUS publish_partsize(void)
 		/* stay compatible with userdata/data naming */
 		if (!StrCmp(gparti[i].part.name, L"data")) {
 			ret = publish_part(L"userdata", size, &gparti[i].part.type);
-			if (EFI_ERROR(ret))
+			if (EFI_ERROR(ret)) {
+				FreePool(gparti);
 				return ret;
+			}
 		} else if (!StrCmp(gparti[i].part.name, L"userdata")) {
 			ret = publish_part(L"data", size, &gparti[i].part.type);
-			if (EFI_ERROR(ret))
+			if (EFI_ERROR(ret)) {
+				FreePool(gparti);
 				return ret;
+			}
 		}
 	}
 

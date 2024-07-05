@@ -546,7 +546,9 @@ EFI_STATUS storage_get_erase_block_size(UINTN *erase_blk_size)
 		if (i == nb_handle)
 			goto notfound;
 
-		return cur_storage->get_erase_block_size(handles[i], erase_blk_size);
+		ret = cur_storage->get_erase_block_size(handles[i], erase_blk_size);
+		FreePool(handles);
+		return ret;
 	}
 
 notfound:

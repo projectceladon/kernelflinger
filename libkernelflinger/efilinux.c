@@ -129,8 +129,10 @@ EFI_STATUS emalloc(UINTN size, UINTN align, EFI_PHYSICAL_ADDRESS *addr, BOOLEAN 
         if (d == map_end)
                 err = EFI_OUT_OF_RESOURCES;
 
-        free_pool(map_buf);
 fail:
+        if (map_buf) {
+                free_pool(map_buf);
+        }
         return err;
 }
 

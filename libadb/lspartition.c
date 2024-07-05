@@ -48,8 +48,11 @@ static EFI_STATUS lspartition_main(INTN argc,
 
 
 	ret = gpt_list_partition(&gparti, &part_count, LOGICAL_UNIT_USER);
-	if (EFI_ERROR(ret) || part_count == 0)
+	if (EFI_ERROR(ret) || part_count == 0) {
+		if (gparti) 
+			FreePool(gparti);
 		return EFI_SUCCESS;
+	}
 
 	for (i = 0; i < part_count; i++)
 		max_len = max(max_len, StrLen(gparti[i].part.name));

@@ -1,6 +1,7 @@
 #include <efi.h>
 #include <efilib.h>
 #include <lib.h>
+#include <stdint.h>
 #include "openssl_support.h"
 
 FILE  *__sF = NULL;
@@ -399,11 +400,11 @@ struct tm
 	char *tm_zone;		/* Timezone abbreviation.  */
 };
 
-struct tm *gmtime_r(const time_t *timep, struct tm *tmp)
+struct tm *gmtime_r(const int64_t *timep, struct tm *tmp)
 	__attribute__((weak));
-struct tm *gmtime_r(const time_t *timep, struct tm *tmp)
+struct tm *gmtime_r(const int64_t *timep, struct tm *tmp)
 {
-	time_t tdays;
+	int64_t tdays;
 	int idays;  /* unsigned would be so 2003 */
 	long long rem;
 	int y;
@@ -414,12 +415,12 @@ struct tm *gmtime_r(const time_t *timep, struct tm *tmp)
 	rem = (long long) (*timep - tdays * SECSPERDAY);
 	while (tdays < 0 || tdays >= year_lengths[isleap(y)]) {
 		int newy;
-		time_t tdelta;
+		int64_t tdelta;
 		int idelta;
 		int leapdays;
 
 		tdelta = tdays / DAYSPERLYEAR;
-		if (! ((! TYPE_SIGNED(time_t) || INT_MIN <= tdelta)
+		if (! ((! TYPE_SIGNED(int64_t) || INT_MIN <= tdelta)
 		       && tdelta <= INT_MAX))
 			return NULL;
 		idelta = tdelta;
@@ -430,7 +431,7 @@ struct tm *gmtime_r(const time_t *timep, struct tm *tmp)
 			return NULL;
 		leapdays = leaps_thru_end_of(newy - 1) -
 			leaps_thru_end_of(y - 1);
-		tdays -= (time_t) (((time_t) newy - y) * DAYSPERNYEAR);
+		tdays -= (int64_t) (((int64_t) newy - y) * DAYSPERNYEAR);
 		tdays -= leapdays;
 		y = newy;
 	}
@@ -528,12 +529,15 @@ static UINTN CumulativeDays[2][14] = {
 	}
 };
 
-time_t time(time_t *timer)
+int64_t time(int64_t *timer)
 	__attribute__((weak));
-time_t time(time_t *timer)
+int64_t time(int64_t *timer)
 {
 	EFI_TIME  Time;
 	UINTN     Year;
+
+	/* Defaultly set timezone as EFI_UNSPECIFIED_TIMEZONE */
+	Time.TimeZone = EFI_UNSPECIFIED_TIMEZONE;
 
 	/* Get the current time and date information */
 	uefi_call_wrapper(RT->GetTime, 2, &Time, NULL);
@@ -541,16 +545,16 @@ time_t time(time_t *timer)
 	/* Years Handling
 	 * UTime should now be set to 00:00:00 on Jan 1 of the current year. */
 	for (Year = 1970, *timer = 0; Year != Time.Year; Year++)
-		*timer = *timer + (time_t)(CumulativeDays[isleap(Year)][13] * SECSPERDAY);
+		*timer = *timer + (int64_t)(CumulativeDays[isleap(Year)][13] * SECSPERDAY);
 
 	/* Add in number of seconds for current Month, Day, Hour, Minute, Seconds, and TimeZone adjustment */
 	*timer = *timer +
-		(time_t)((Time.TimeZone != EFI_UNSPECIFIED_TIMEZONE) ? (Time.TimeZone * 60) : 0) +
-		(time_t)(CumulativeDays[isleap(Time.Year)][Time.Month] * SECSPERDAY) +
-		(time_t)(((Time.Day > 0) ? (time_t)Time.Day - 1 : 0) * SECSPERDAY) +
-		(time_t)((time_t)Time.Hour * SECSPERHOUR) +
-		(time_t)((time_t)Time.Minute * 60) +
-		(time_t)Time.Second;
+		(int64_t)((Time.TimeZone != EFI_UNSPECIFIED_TIMEZONE) ? (Time.TimeZone * 60) : 0) +
+		(int64_t)(CumulativeDays[isleap(Time.Year)][Time.Month] * SECSPERDAY) +
+		(int64_t)(((Time.Day > 0) ? (int64_t)Time.Day - 1 : 0) * SECSPERDAY) +
+		(int64_t)((int64_t)Time.Hour * SECSPERHOUR) +
+		(int64_t)((int64_t)Time.Minute * 60) +
+		(int64_t)Time.Second;
 
 	return *timer;
 }
