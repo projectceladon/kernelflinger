@@ -1907,9 +1907,10 @@ EFI_STATUS android_image_load_file(
                 return ret;
         }
         fileinfo = AllocatePool(buffersize);
-        if (!fileinfo)
+        if (!fileinfo) {
                 FreePool(path);
                 return EFI_OUT_OF_RESOURCES;
+        }
 
         ret = uefi_call_wrapper(imagefile->GetInfo, 4, imagefile,
                         &EfiFileInfoId, &buffersize, fileinfo);
@@ -1918,9 +1919,11 @@ EFI_STATUS android_image_load_file(
                  * the request */
                 FreePool(fileinfo);
                 fileinfo = AllocatePool(buffersize);
-                if (!fileinfo)
+                if (!fileinfo) {
                         FreePool(path);
                         return EFI_OUT_OF_RESOURCES;
+                }
+                
                 ret = uefi_call_wrapper(imagefile->GetInfo, 4, imagefile,
                         &EfiFileInfoId, &buffersize, fileinfo);
         }

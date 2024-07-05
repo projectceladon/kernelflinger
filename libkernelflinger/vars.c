@@ -254,6 +254,7 @@ static EFI_STATUS read_device_state_efi(UINT8 *state)
 	}
 	if (!dsize) {
 		error(L"Read device state from EFI variable, but data size is 0");
+		FreePool(stored_state);
 		ret = EFI_COMPROMISED_DATA;
 		return ret;
 	}
@@ -547,10 +548,14 @@ EFI_STATUS get_watchdog_status(UINT8 *counter, EFI_TIME *time)
 	if (EFI_ERROR(ret))
 		return ret;
 
-	if (size != sizeof(*time))
+	if (size != sizeof(*time)) {
+		FreePool(tmp);
 		return EFI_COMPROMISED_DATA;
+	}
 
-	return memcpy_s(time, sizeof(*time), tmp, size);
+	ret = memcpy_s(time, sizeof(*time), tmp, size);
+	FreePool(tmp);
+	return ret;
 }
 
 EFI_STATUS reset_watchdog_status(VOID)
@@ -798,10 +803,19 @@ char *get_serialno_var()
 	CHAR8 *data;
 	EFI_STATUS ret;
 	UINTN size;
+	BOOLEAN dataFreeable = FALSE;
 
 	ret = get_efi_variable(&loader_guid, SERIAL_NUM_VAR, &size, (VOID **)&data,NULL);
-	if (EFI_ERROR(ret) || !data || !size)
+
+	if (!EFI_ERROR(ret) && data && size) {
+		dataFreeable = TRUE;
+	}
+	if (EFI_ERROR(ret) || !data || !size) {
+		if (dataFreeable && data) {
+			FreePool(data);
+		}
 		return NULL;
+	}
 	if (data[size - 1] != '\0') {
 		FreePool(data);
 		return NULL;
@@ -977,8 +991,10 @@ EFI_STATUS read_efi_rollback_index(UINTN rollback_index_slot, uint64_t* out_roll
 	}
 	debug(L"Success to read EFI variable %s: 0x%llx ", name, *(uint64_t *)data);
 
-	if (size != sizeof(*out_rollback_index))
+	if (size != sizeof(*out_rollback_index)) {
+		FreePool(data);
 		return EFI_COMPROMISED_DATA;
+	}
 
 	*out_rollback_index = *(uint64_t *)data;
 
@@ -1037,6 +1053,7 @@ EFI_STATUS get_efi_loaded_slot_failed(UINT8 slot, EFI_STATUS *error)
 
 	if (size != sizeof(error)) {
 		debug(L"The sizeof %s is not %d", name, size);
+		FreePool(data);
 		return EFI_COMPROMISED_DATA;
 	}
 	*error = *((EFI_STATUS *)data);

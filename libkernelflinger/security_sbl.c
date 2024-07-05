@@ -182,6 +182,7 @@ BOOLEAN is_platform_secure_boot_enabled(VOID)
 
 	debug(L"Getting platform secure boot to value[%d], size[%d]", value, cursize);
 
+	FreePool(curdata);
 	return value == 1;
 }
 

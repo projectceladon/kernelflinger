@@ -142,6 +142,7 @@ static EFI_STATUS find_load_option_entry(CHAR16 *description, UINT16 *entry)
 			goto exit;
 
 		*entry = strtoul((char *)number, NULL, 16);
+		FreePool(name);
 		return EFI_SUCCESS;
 	}
 
