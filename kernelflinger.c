@@ -620,6 +620,8 @@ static enum boot_target check_command_line()
 		ret = str_to_stra((CHAR8 *)arg8, argv[i], arglen + 1);
 		if (EFI_ERROR(ret)) {
 			efi_perror(ret, L"Non-ascii characters in command line");
+			FreePool(argv);
+			FreePool(options);
 			return FASTBOOT;
 		}
 

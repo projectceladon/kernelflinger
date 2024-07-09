@@ -220,7 +220,7 @@ EFI_STATUS fastboot_tcp_write(void *buf, UINT32 size)
 	}
 
 	*((UINT64 *)write_buf) = htobe64(size);
-	ret = memcpy_s(write_buf + sizeof(UINT64), sizeof(write_buf), buf, size);
+	ret = memcpy_s(write_buf + sizeof(UINT64), sizeof(write_buf) - sizeof(UINT64), buf, size);
 	if (EFI_ERROR(ret))
 		return ret;
 

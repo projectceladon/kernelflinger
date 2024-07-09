@@ -119,7 +119,7 @@ static void log_append_to_buffer(CHAR8 *msg, UINTN length)
 		pos = 0;
 	}
 
-	ret = memcpy_s(log_buf + pos, sizeof(log_buf), msg, length);
+	ret = memcpy_s(log_buf + pos, sizeof(log_buf) - pos, msg, length);
 	if (EFI_ERROR(ret))
 		return;
 

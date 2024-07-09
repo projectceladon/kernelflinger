@@ -952,7 +952,7 @@ static CHAR16 *get_command_line(IN struct boot_img_hdr *aosp_header,
                             /* legacy boot.img format cmdline is NUL terminated */
                             if (!aosp_header->cmdline[BOOT_ARGS_SIZE - 1])
                                     offset--;
-                            ret = memcpy_s(full_cmdline + offset, sizeof(full_cmdline),
+                            ret = memcpy_s(full_cmdline + offset, sizeof(full_cmdline) - offset,
                                            aosp_header->extra_cmdline, BOOT_EXTRA_ARGS_SIZE);
                             if (EFI_ERROR(ret))
                                     goto failed;
