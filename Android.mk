@@ -477,6 +477,26 @@ LOCAL_C_INCLUDES += \
 	$(addprefix $(LOCAL_PATH)/,libsslsupport)
 include $(BUILD_SBL_EXECUTABLE)
 
+include $(CLEAR_VARS)
+# crash dump for sbl
+LOCAL_MODULE := cd4sbl-$(TARGET_BUILD_VARIANT)
+LOCAL_MODULE_STEM := cd4sbl
+LOCAL_CFLAGS := $(SHARED_CFLAGS)
+
+LOCAL_CFLAGS += -D__CRASH_DUMP
+
+LOCAL_STATIC_LIBRARIES += \
+	$(SHARED_STATIC_LIBRARIES) \
+	libpayload \
+	libefiwrapper-cd-$(TARGET_BUILD_VARIANT) \
+	libefiwrapper_drivers-cd-$(TARGET_BUILD_VARIANT) \
+	efiwrapper-cd-$(TARGET_BUILD_VARIANT)
+
+LOCAL_SRC_FILES := \
+	crashdump.c
+
+include $(BUILD_SBL_EXECUTABLE)
+
 endif  #KERNELFLINGER_SUPPORT_NON_EFI_BOOT
 
 
