@@ -257,13 +257,13 @@ static void cmd_unlock(__attribute__((__unused__)) INTN argc,
 #endif
 		change_device_state(UNLOCKED, TRUE);
 	} else {
-#ifdef USER
-		fastboot_fail("Unlocking device not allowed");
-#else
+//#ifdef USER
+//		fastboot_fail("Unlocking device not allowed");
+//#else
 		fastboot_info("Unlock protection is set");
 		fastboot_info("Unlocking anyway since this is not a User build");
 		change_device_state(UNLOCKED, TRUE);
-#endif
+//#endif
 	}
 }
 
