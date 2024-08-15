@@ -98,6 +98,7 @@ ifneq ($(TARGET_BUILD_VARIANT),user)
 endif
 
 ifneq ($(strip $(KERNELFLINGER_USE_UI)),false)
+    KERNELFLINGER_CFLAGS += -DUSE_UI
 endif
 
 ifeq ($(KERNELFLINGER_OS_SECURE_BOOT),true)

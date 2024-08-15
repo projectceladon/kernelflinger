@@ -82,7 +82,8 @@ void avb_abort(void) {
 }
 
 #ifdef USE_UI
-void avb_print_ui(const char* message) {
+void avb_print_ui(const char* message)
+{
   CHAR16* p = stra_to_str(message);
   if (p != NULL) {
     ui_error(p);

@@ -35,7 +35,7 @@
 #include "pae.h"
 #include "timer.h"
 #include "acpi.h"
-
+#include "libavb.h"
 //Global AvbOps data structure
 static AvbOps *ops = NULL;
 
