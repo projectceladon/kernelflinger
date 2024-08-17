@@ -516,7 +516,7 @@ static EFI_STATUS publish_slots(void)
 static EFI_STATUS publish_partsize(void)
 {
 	EFI_STATUS ret;
-	struct gpt_partition_interface *gparti;
+	struct gpt_partition_interface *gparti = NULL;
 	UINTN part_count;
 	UINTN i;
 
