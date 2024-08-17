@@ -1289,103 +1289,103 @@ static EFI_STATUS setup_command_line(
                 OUT UINT8 **androidcmd
                 )
 {
-        CHAR16 *cmdline16 = NULL;
-        char   *serialno = NULL;
-        CHAR16 *serialport = NULL;
-        CHAR16 *bootreason = NULL;
-        EFI_PHYSICAL_ADDRESS cmdline_addr = 0;
-        CHAR8 *cmdline;
-        CHAR8 *cmd_conf= NULL;
-        UINTN cmdlen;
-        UINTN cmdsize;
-        UINTN vb_cmdlen = 0;
-        EFI_STATUS ret;
-        struct boot_params *buf;
-        struct boot_img_hdr *aosp_header;
-        CHAR8 time_str8[128] = {0};
-        CHAR16 *time_str16 = NULL;
-        EFI_GUID *swap_guid = NULL;
-        CHAR8 *abl_cmd_line = NULL;
-        BOOLEAN is_uefi = TRUE;
-        UINTN abl_cmd_len = 0;
+	CHAR16 *cmdline16 = NULL;
+	char   *serialno = NULL;
+	CHAR16 *serialport = NULL;
+	CHAR16 *bootreason = NULL;
+	EFI_PHYSICAL_ADDRESS cmdline_addr = 0;
+	CHAR8 *cmdline;
+	CHAR8 *cmd_conf= NULL;
+	UINTN cmdlen;
+	UINTN cmdsize;
+	UINTN vb_cmdlen = 0;
+	EFI_STATUS ret;
+	struct boot_params *buf;
+	struct boot_img_hdr *aosp_header;
+	CHAR8 time_str8[128] = {0};
+	CHAR16 *time_str16 = NULL;
+	EFI_GUID *swap_guid = NULL;
+	CHAR8 *abl_cmd_line = NULL;
+	BOOLEAN is_uefi = TRUE;
+	UINTN abl_cmd_len = 0;
 #ifdef USE_SBL
-        const char *cmd_for_kernel = NULL;
-        char *tmp = NULL;
+	const char *cmd_for_kernel = NULL;
+	char *tmp = NULL;
 #endif
 
-        is_uefi = is_UEFI();
+	is_uefi = is_UEFI();
 
-        if (is_uefi)
-                swap_guid = (EFI_GUID *)parameter;
-        else {
-                abl_cmd_line = (CHAR8 *)parameter;
-                if (abl_cmd_line != NULL)
-                    abl_cmd_len = strlen(abl_cmd_line);
-        }
+	if (is_uefi)
+		swap_guid = (EFI_GUID *)parameter;
+	else {
+		abl_cmd_line = (CHAR8 *)parameter;
+		if (abl_cmd_line != NULL)
+			abl_cmd_len = strlen(abl_cmd_line);
+	}
 
-        aosp_header = (struct boot_img_hdr *)bootimage;
-        cmdline16 = get_command_line(aosp_header, boot_target);
-        if (!cmdline16) {
-                ret = EFI_OUT_OF_RESOURCES;
-                goto out;
-        }
+	aosp_header = (struct boot_img_hdr *)bootimage;
+	cmdline16 = get_command_line(aosp_header, boot_target);
+	if (!cmdline16) {
+		ret = EFI_OUT_OF_RESOURCES;
+		goto out;
+	}
 
-        if (aosp_header->header_version >= BOOT_HEADER_V3) {
-            struct vendor_boot_img_hdr_v3 *v3 = (struct vendor_boot_img_hdr_v3 *)vendorbootimage;
-            ret = prepend_command_line(&cmdline16, L"%a", v3->cmdline);
-        }
+	if (aosp_header->header_version >= BOOT_HEADER_V3) {
+		struct vendor_boot_img_hdr_v3 *v3 = (struct vendor_boot_img_hdr_v3 *)vendorbootimage;
+		ret = prepend_command_line(&cmdline16, L"%a", v3->cmdline);
+	}
 
-        /* Append serial number from DMI */
-        serialno = get_serial_number();
-        if (serialno) {
-                ret = prepend_command_line(&cmdline16,
-                                L"androidboot.serialno=%a g_ffs.iSerialNumber=%a",
-                                serialno, serialno);
-                if (EFI_ERROR(ret))
-                        goto out;
-        }
+	/* Append serial number from DMI */
+	serialno = get_serial_number();
+	if (serialno) {
+		ret = prepend_command_line(&cmdline16,
+				L"androidboot.serialno=%a g_ffs.iSerialNumber=%a",
+				serialno, serialno);
+		if (EFI_ERROR(ret))
+			goto out;
+	}
 
-        if (boot_target == CHARGER) {
-                ret = prepend_command_line(&cmdline16,
-                                L"androidboot.mode=charger");
-                if (EFI_ERROR(ret))
-                        goto out;
-        }
+	if (boot_target == CHARGER) {
+		ret = prepend_command_line(&cmdline16,
+				L"androidboot.mode=charger");
+		if (EFI_ERROR(ret))
+			goto out;
+	}
 #ifndef USE_SBL
-        if (is_uefi)
-                bootreason = get_boot_reason();
-        else
-                bootreason = get_reboot_reason();
+	if (is_uefi)
+		bootreason = get_boot_reason();
+	else
+		bootreason = get_reboot_reason();
 #else
-        bootreason = get_sbl_boot_reason();
+	bootreason = get_sbl_boot_reason();
 #endif
 
-        if (!bootreason) {
-                ret = EFI_OUT_OF_RESOURCES;
-                goto out;
-        }
+	if (!bootreason) {
+		ret = EFI_OUT_OF_RESOURCES;
+		goto out;
+	}
 
-        ret = prepend_command_line(&cmdline16, L"androidboot.bootreason=%s", bootreason);
-        if (EFI_ERROR(ret))
-                goto out;
-        ret = prepend_command_line(&cmdline16, L"androidboot.verifiedbootstate=%s",
-                                   boot_state_to_string(boot_state));
-        if (EFI_ERROR(ret))
-                goto out;
+	ret = prepend_command_line(&cmdline16, L"androidboot.bootreason=%s", bootreason);
+	if (EFI_ERROR(ret))
+		goto out;
+	ret = prepend_command_line(&cmdline16, L"androidboot.verifiedbootstate=%s",
+			boot_state_to_string(boot_state));
+	if (EFI_ERROR(ret))
+		goto out;
 
-        if (swap_guid) {
-                ret = prepend_command_line(&cmdline16, L"resume=PARTUUID=%g",
-                        swap_guid);
-                if (EFI_ERROR(ret))
-                        goto out;
-        }
+	if (swap_guid) {
+		ret = prepend_command_line(&cmdline16, L"resume=PARTUUID=%g",
+				swap_guid);
+		if (EFI_ERROR(ret))
+			goto out;
+	}
 
-        serialport = get_serial_port();
-        if (serialport) {
-                ret = prepend_command_line(&cmdline16, L"console=%s", serialport);
-                if (EFI_ERROR(ret))
-                        goto out;
-        }
+	serialport = get_serial_port();
+	if (serialport) {
+		ret = prepend_command_line(&cmdline16, L"console=%s", serialport);
+		if (EFI_ERROR(ret))
+			goto out;
+	}
 
 #ifdef USE_SBL
         /* Append cmd_for_kernel */
@@ -1451,103 +1451,105 @@ static EFI_STATUS setup_command_line(
                 diskbus = PoolPrint(L"%a", (CHAR8 *)PREDEF_DISK_BUS);
 #endif
 
-                StrToLower(diskbus);
-                StrToLower(diskbus2); 
+		StrToLower(diskbus);
+		if (diskbus2)
+			StrToLower(diskbus2);
 
-                if (diskbus2 && aosp_header->header_version < 2) {
-                        warning(L"androidboot.diskbus only support 1 device, secondary_diskbus ignored");
-                        ret = prepend_command_line(&cmdline16, L"androidboot.diskbus=%s", diskbus);
-                } else if (diskbus2) {
-                        ret = prepend_command_line(&cmdline16,
-                                                   L"androidboot.boot_devices=pci0000:00/0000:00:%s,pci0000:00/0000:00:%s pci=noaer",
-                                                   diskbus, diskbus2);
-                } else {
-                        ret = prepend_command_line(&cmdline16,
-                                                   L"androidboot.boot_devices=pci0000:00/0000:00:%s pci=noaer",
-                                                   diskbus);
-                }
+		if (diskbus2 && aosp_header->header_version < 2) {
+			warning(L"androidboot.diskbus only support 1 device, secondary_diskbus ignored");
+			ret = prepend_command_line(&cmdline16, L"androidboot.diskbus=%s", diskbus);
+		} else if (diskbus2) {
+			ret = prepend_command_line(&cmdline16,
+					L"androidboot.boot_devices=pci0000:00/0000:00:%s,pci0000:00/0000:00:%s pci=noaer",
+					diskbus, diskbus2);
+		} else {
+			ret = prepend_command_line(&cmdline16,
+					L"androidboot.boot_devices=pci0000:00/0000:00:%s pci=noaer",
+					diskbus);
+		}
 
-                FreePool(diskbus);
-                FreePool(diskbus2);
-                if (EFI_ERROR(ret))
-                        goto out;
-        } else
-                error(L"Boot device not found, diskbus parameter not set in the commandline!");
+		FreePool(diskbus);
+		if (diskbus2)
+			FreePool(diskbus2);
+		if (EFI_ERROR(ret))
+			goto out;
+	} else
+		error(L"Boot device not found, diskbus parameter not set in the commandline!");
 
-        ret = prepend_command_line(&cmdline16, L"androidboot.bootloader=%a",
-                                   get_property_bootloader());
-        if (EFI_ERROR(ret))
-                goto out;
+	ret = prepend_command_line(&cmdline16, L"androidboot.bootloader=%a",
+			get_property_bootloader());
+	if (EFI_ERROR(ret))
+		goto out;
 #if defined(DYNAMIC_PARTITIONS) && defined(USE_SLOT)
-        //BOARD_USES_RECOVERY_AS_BOOT is set to true, the recovery image is built as boot.img
-        //containing the recovery’s ramdisk. command line "androidboot.force_normal_boot=1" is
-        //mandatory for normal boot.
-        if(boot_target == NORMAL_BOOT) {
-                ret = prepend_command_line(&cmdline16, L"androidboot.force_normal_boot=1");
-                if (EFI_ERROR(ret))
-                        goto out;
-        }
+	//BOARD_USES_RECOVERY_AS_BOOT is set to true, the recovery image is built as boot.img
+	//containing the recovery’s ramdisk. command line "androidboot.force_normal_boot=1" is
+	//mandatory for normal boot.
+	if(boot_target == NORMAL_BOOT) {
+		ret = prepend_command_line(&cmdline16, L"androidboot.force_normal_boot=1");
+		if (EFI_ERROR(ret))
+			goto out;
+	}
 #endif
-        ret = prepend_command_line(&cmdline16, L"androidboot.acpi_idx=%a ",
-                                   acpi_loaded_table_idx_to_string(BOOT_ACPI));
-        if (EFI_ERROR(ret))
-                goto out;
+	ret = prepend_command_line(&cmdline16, L"androidboot.acpi_idx=%a ",
+			acpi_loaded_table_idx_to_string(BOOT_ACPI));
+	if (EFI_ERROR(ret))
+		goto out;
 
-        ret = prepend_command_line(&cmdline16, L"androidboot.acpio_idx=%a ",
-                                   acpi_loaded_table_idx_to_string(ACPIO));
-        if (EFI_ERROR(ret))
-                goto out;
+	ret = prepend_command_line(&cmdline16, L"androidboot.acpio_idx=%a ",
+			acpi_loaded_table_idx_to_string(ACPIO));
+	if (EFI_ERROR(ret))
+		goto out;
 
 #ifdef HAL_AUTODETECT
-        ret = prepend_command_line(&cmdline16, L"androidboot.brand=%a "
-                                   "androidboot.name=%a androidboot.device=%a "
-                                   "androidboot.model=%a", get_property_brand(),
-                                   get_property_name(), get_property_device(),
-                                   get_property_model());
-        if (EFI_ERROR(ret))
-                goto out;
+	ret = prepend_command_line(&cmdline16, L"androidboot.brand=%a "
+			"androidboot.name=%a androidboot.device=%a "
+			"androidboot.model=%a", get_property_brand(),
+			get_property_name(), get_property_device(),
+			get_property_model());
+	if (EFI_ERROR(ret))
+		goto out;
 
-        if (aosp_header->header_version < BOOT_HEADER_V3) {
-                ret = add_bootvars(bootimage, &cmdline16);
-                if (EFI_ERROR(ret))
-                        goto out;
-        }
+	if (aosp_header->header_version < BOOT_HEADER_V3) {
+		ret = add_bootvars(bootimage, &cmdline16);
+		if (EFI_ERROR(ret))
+			goto out;
+	}
 #endif
 
-        ret = prepend_slot_command_line(&cmdline16, boot_target, vb_data);
-        if (EFI_ERROR(ret))
-                goto out;
-        /* append stages boottime */
-        set_boottime_stamp(TM_JMP_KERNEL);
-        construct_stages_boottime(time_str8, sizeof(time_str8));
-        time_str16 = stra_to_str(time_str8);
-        if (time_str16) {
-                ret = prepend_command_line(&cmdline16, L"androidboot.boottime=%s", time_str16);
-                if (EFI_ERROR(ret))
-                        goto out;
-        }
+	ret = prepend_slot_command_line(&cmdline16, boot_target, vb_data);
+	if (EFI_ERROR(ret))
+		goto out;
+	/* append stages boottime */
+	set_boottime_stamp(TM_JMP_KERNEL);
+	construct_stages_boottime(time_str8, sizeof(time_str8));
+	time_str16 = stra_to_str(time_str8);
+	if (time_str16) {
+		ret = prepend_command_line(&cmdline16, L"androidboot.boottime=%s", time_str16);
+		if (EFI_ERROR(ret))
+			goto out;
+	}
 
-        if(boot_target != MEMORY)
-                vb_cmdlen = get_vb_cmdlen(vb_data);
+	if(boot_target != MEMORY)
+		vb_cmdlen = get_vb_cmdlen(vb_data);
 
-        cmdlen = StrLen(cmdline16);
-        if (is_uefi) {
-            cmdsize = cmdlen + 1 + vb_cmdlen + 1;
-        } else {
-            cmdsize = cmdlen + vb_cmdlen + abl_cmd_len + 256;
-        }
+	cmdlen = StrLen(cmdline16);
+	if (is_uefi) {
+		cmdsize = cmdlen + 1 + vb_cmdlen + 1;
+	} else {
+		cmdsize = cmdlen + vb_cmdlen + abl_cmd_len + 256;
+	}
 
-        cmd_conf = AllocatePool(cmdsize);
-        if (cmd_conf == NULL) {
-                ret = EFI_OUT_OF_RESOURCES;
-                goto out;
-        }
+	cmd_conf = AllocatePool(cmdsize);
+	if (cmd_conf == NULL) {
+		ret = EFI_OUT_OF_RESOURCES;
+		goto out;
+	}
 
-        ret = str_to_stra(cmd_conf, cmdline16, cmdlen + 1);
-        if (EFI_ERROR(ret)) {
-                error(L"Non-ascii characters in command line");
-                goto out;
-        }
+	ret = str_to_stra(cmd_conf, cmdline16, cmdlen + 1);
+	if (EFI_ERROR(ret)) {
+		error(L"Non-ascii characters in command line");
+		goto out;
+	}
 
         if (vb_cmdlen > 0) {
                 char *vb_cmdline;
@@ -1581,84 +1583,81 @@ static EFI_STATUS setup_command_line(
                         ret = memcpy_s(new_cmd_conf + abl_cmd_len + 1, cmdlen, cmd_conf, cmdlen);
                         if (EFI_ERROR(ret)) {
                                 FreePool(new_cmd_conf);
-                                goto out;
-                        }
-                }
+				goto out;
+			}
+		}
 
-                if (cmd_conf != NULL) {
-                        FreePool(cmd_conf);
-                }
+		if (cmd_conf != NULL) {
+			FreePool(cmd_conf);
+		}
 
-                cmd_conf = new_cmd_conf;
-                cmdlen += abl_cmd_len + 1;
-                cmd_conf[cmdlen] = '\0';
-        }
+		cmd_conf = new_cmd_conf;
+		cmdlen += abl_cmd_len + 1;
+		cmd_conf[cmdlen] = '\0';
+	}
 
-        if (is_uefi) {
-            /* Documentation/x86/boot.txt: "The kernel command line can be located
-             * anywhere between the end of the setup heap and 0xA0000" */
-            cmdline_addr = 0xA0000;
+	if (is_uefi) {
+		/* Documentation/x86/boot.txt: "The kernel command line can be located
+		 * anywhere between the end of the setup heap and 0xA0000" */
+		cmdline_addr = 0xA0000;
 
-            ret = allocate_pages(AllocateMaxAddress, EfiLoaderData,
-                                 EFI_SIZE_TO_PAGES(cmdsize),
-                                 &cmdline_addr);
-            if (EFI_ERROR(ret)) {
-                    goto out;
-            }
-        } else {
-            cmdline_addr = (EFI_PHYSICAL_ADDRESS)((UINTN)AllocatePool(cmdsize));
-            if (cmdline_addr == 0) {
-                    ret = EFI_OUT_OF_RESOURCES;
-                    goto out;
-            }
-        }
+		ret = allocate_pages(AllocateMaxAddress, EfiLoaderData,
+				EFI_SIZE_TO_PAGES(cmdsize),
+				&cmdline_addr);
+		if (EFI_ERROR(ret)) {
+			goto out;
+		}
+	} else {
+		cmdline_addr = (EFI_PHYSICAL_ADDRESS)((UINTN)AllocatePool(cmdsize));
+		if (cmdline_addr == 0) {
+			ret = EFI_OUT_OF_RESOURCES;
+			goto out;
+		}
+	}
 
-        cmdline = (CHAR8 *)(UINTN)cmdline_addr;
+	cmdline = (CHAR8 *)(UINTN)cmdline_addr;
 
-        if (aosp_header->header_version <= BOOT_HEADER_V3) {
-                ret = memcpy_s(cmdline, cmdsize, cmd_conf, cmdsize);
-        } else {
-                if (androidcmd == NULL) {
-                        ret = EFI_INVALID_PARAMETER;
-                        goto out;
-                }
-                *androidcmd= AllocatePool(cmdsize);
-                if (*androidcmd == NULL) {
-                        ret = EFI_OUT_OF_RESOURCES;
-                        goto out;
-                }
+	if (aosp_header->header_version <= BOOT_HEADER_V3) {
+		ret = memcpy_s(cmdline, cmdsize, cmd_conf, cmdsize);
+	} else {
+		if (androidcmd == NULL) {
+			ret = EFI_INVALID_PARAMETER;
+			goto out;
+		}
+		*androidcmd= AllocatePool(cmdsize);
+		if (*androidcmd == NULL) {
+			ret = EFI_OUT_OF_RESOURCES;
+			goto out;
+		}
 
-                ret = classify_cmd_parameters(cmd_conf, *androidcmd, cmdline);
-        }
+		ret = classify_cmd_parameters(cmd_conf, *androidcmd, cmdline);
+	}
 
-        if (EFI_ERROR(ret)) {
-                free_pages(cmdline_addr, EFI_SIZE_TO_PAGES(cmdsize));
-                goto out;
-        }
+	if (EFI_ERROR(ret)) {
+		free_pages(cmdline_addr, EFI_SIZE_TO_PAGES(cmdsize));
+		goto out;
+	}
 
-        buf = get_boot_param_hdr(bootimage);
-        buf->hdr.cmd_line_ptr = (UINT32)(UINTN)cmdline;
-        ret = EFI_SUCCESS;
+	buf = get_boot_param_hdr(bootimage);
+	buf->hdr.cmd_line_ptr = (UINT32)(UINTN)cmdline;
+	ret = EFI_SUCCESS;
 out:
-        if (cmdline16)
-                FreePool(cmdline16);
-        if (cmd_conf)
-                FreePool(cmd_conf);
-        if (serialport)
-                FreePool(serialport);
-        if (time_str16)
-                FreePool(time_str16);
-        if (bootreason) {
-                FreePool(bootreason);
-        }
-        if (EFI_ERROR(ret) && cmdline_addr) {
-                if (is_uefi) {
-                        free_pages(cmdline_addr, EFI_SIZE_TO_PAGES(cmdsize));
-                } else {
-                        FreePool((void *)(UINTN)cmdline_addr);
-                }
-        }
-        return ret;
+	if (cmdline16)
+		FreePool(cmdline16);
+	if (cmd_conf)
+		FreePool(cmd_conf);
+	if (serialport)
+		FreePool(serialport);
+	if (time_str16)
+		FreePool(time_str16);
+	if (EFI_ERROR(ret) && cmdline_addr) {
+		if (is_uefi) {
+			free_pages(cmdline_addr, EFI_SIZE_TO_PAGES(cmdsize));
+		} else {
+			FreePool((void *)(UINTN)cmdline_addr);
+		}
+	}
+	return ret;
 }
 
 extern EFI_GUID GraphicsOutputProtocol;
@@ -1666,21 +1665,21 @@ extern EFI_GUID GraphicsOutputProtocol;
 
 static void setup_screen_info_from_gop(struct screen_info *pinfo)
 {
-        EFI_GRAPHICS_OUTPUT_PROTOCOL *gop;
-        EFI_STATUS ret;
+	EFI_GRAPHICS_OUTPUT_PROTOCOL *gop;
+	EFI_STATUS ret;
 
-        ret = LibLocateProtocol(&GraphicsOutputProtocol, (void **)&gop);
-        if (EFI_ERROR(ret)) {
-                debug(L"Unable to locate graphics output protocol: %r", ret);
-                return;
-        }
+	ret = LibLocateProtocol(&GraphicsOutputProtocol, (void **)&gop);
+	if (EFI_ERROR(ret)) {
+		debug(L"Unable to locate graphics output protocol: %r", ret);
+		return;
+	}
 
-        pinfo->orig_video_isVGA = VIDEO_TYPE_EFI;
-        pinfo->lfb_base = (UINT32)gop->Mode->FrameBufferBase;
-        pinfo->lfb_size = gop->Mode->FrameBufferSize;
-        pinfo->lfb_width = gop->Mode->Info->HorizontalResolution;
-        pinfo->lfb_height = gop->Mode->Info->VerticalResolution;
-        pinfo->lfb_linelength = gop->Mode->Info->PixelsPerScanLine * 4;
+	pinfo->orig_video_isVGA = VIDEO_TYPE_EFI;
+	pinfo->lfb_base = (UINT32)gop->Mode->FrameBufferBase;
+	pinfo->lfb_size = gop->Mode->FrameBufferSize;
+	pinfo->lfb_width = gop->Mode->Info->HorizontalResolution;
+	pinfo->lfb_height = gop->Mode->Info->VerticalResolution;
+	pinfo->lfb_linelength = gop->Mode->Info->PixelsPerScanLine * 4;
 }
 
 static EFI_STATUS handover_kernel(CHAR8 *bootimage, EFI_HANDLE parent_image)
