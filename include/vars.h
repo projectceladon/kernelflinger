@@ -97,10 +97,14 @@ extern const EFI_GUID fastboot_guid;
 #define TOS_LABEL		L"tos"
 #define VBMETA_LABEL		L"vbmeta"
 #define PRODUCT_LABEL		L"product"
+#define PRIMARY_LABEL		L"primary"
 #ifdef DYNAMIC_PARTITIONS
 #define SUPER_LABEL		L"super"
 #endif
 
+#define ACPI_BASE_ADDRESS 0x1800
+#define WDT_CTL_OFFSET 0x54
+#define R_ACPI_IO_OC_WDT_CTL (ACPI_BASE_ADDRESS+WDT_CTL_OFFSET)
 /*labels to trigger IFWI self update. Only for ABL*/
 #define IFWI_CAPSULE_UPDATE	L"IfwiCapsuleUpdate"
 

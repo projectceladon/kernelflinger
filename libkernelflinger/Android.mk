@@ -134,7 +134,12 @@ LOCAL_SRC_FILES := \
 	vbmeta_ias.c \
 	android_vb2.c \
 	security_vb2.c \
-	embedded_controller.c
+	embedded_controller.c \
+	fatfs.c \
+	fatfs/source/diskio.c \
+	fatfs/source/ff.c \
+	fatfs/source/ffsystem.c \
+	fatfs/source/ffunicode.c
 
 ifeq ($(KERNELFLINGER_SUPPORT_USB_STORAGE),true)
 	LOCAL_SRC_FILES += usb_storage.c \
@@ -266,4 +271,5 @@ LOCAL_C_INCLUDES += $(LOCAL_PATH)/../avb/libavb_user
 LOCAL_C_INCLUDES += $(LOCAL_PATH)/../include/libqltipc
 LOCAL_C_INCLUDES += $(LOCAL_PATH)/../include/libheci
 LOCAL_C_INCLUDES += $(LOCAL_PATH)/../include/libelfloader
+LOCAL_C_INCLUDES += $(LOCAL_PATH)/fatfs/source
 include $(BUILD_EFI_STATIC_LIBRARY)

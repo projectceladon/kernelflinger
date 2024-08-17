@@ -216,4 +216,8 @@ set(LIB_KERNELFLINGER_SOURCES
 	${LIB_KERNELFLINGER_SOURCE}/ias_sig.c
 	${LIB_KERNELFLINGER_SOURCE}/no_ui.c
 	${LIB_KERNELFLINGER_SOURCE}/ui_color.c
+	${LIB_KERNELFLINGER_SOURCE}/fatfs/source/diskio.c
+	${LIB_KERNELFLINGER_SOURCE}/fatfs/source/ff.c
+	${LIB_KERNELFLINGER_SOURCE}/fatfs/source/ffsystem.c
+	${LIB_KERNELFLINGER_SOURCE}/fatfs/source/ffunicode.c
 	)

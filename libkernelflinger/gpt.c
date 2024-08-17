@@ -518,6 +518,29 @@ EFI_STATUS get_dedicated_disk(struct gpt_partition_interface *gpart)
 }
 #endif /* MULTI_USER  */
 
+EFI_STATUS gpt_get_efi_partition( struct gpt_partition_interface *gpart)
+{
+	struct gpt_partition *part;
+    UINTN p;
+	if (!gpart)
+		return EFI_INVALID_PARAMETER;
+	for (p = 0; p < sdisk.gpt_hd.number_of_entries; p++) {
+		part = &sdisk.partitions[p];
+		if (!CompareGuid(&part->type, &NullGuid))
+			continue;
+		if (0 == CompareGuid(&part->type, &EfiPartTypeSystemPartitionGuid)) {
+			debug(L"find EFI System guid is matched");
+			copy_part(part, &gpart->part);
+			gpart->bio = sdisk.bio;
+			gpart->dio = sdisk.dio;
+			gpart->handle = sdisk.handle;
+		    return EFI_SUCCESS;
+		}else {
+			continue;
+		}
+	}
+	return EFI_NOT_FOUND;
+}
 EFI_STATUS gpt_get_partition_by_label(const CHAR16 *label,
 				      struct gpt_partition_interface *gpart,
 				      logical_unit_t log_unit)
