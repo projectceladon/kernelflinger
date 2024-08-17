@@ -107,7 +107,7 @@ EFI_STATUS acpi_image_get_length(const CHAR16 *label, struct ACPI_INFO **acpi_in
 		gpart.bio->Media->BlockSize;
 	debug(L"Reading %s image header", label);
 	ret = uefi_call_wrapper(gpart.dio->ReadDisk, 5, gpart.dio, MediaId,
-				partition_start, sizeof(aosp_header), &aosp_header);
+				partition_start+vm_offset, sizeof(aosp_header), &aosp_header);
 	if (EFI_ERROR(ret)) {
 		efi_perror(ret, L"ReadDisk (%s_header)", label);
 		return ret;
@@ -183,7 +183,7 @@ static EFI_STATUS acpi_image_load_partition(const CHAR16 *label, VOID **image)
 	}
 	debug(L"Reading %s image: %d bytes", label, (*acpi_info).img_size);
 	ret = uefi_call_wrapper(gpart.dio->ReadDisk, 5, gpart.dio, (*acpi_info).MediaId,
-				(*acpi_info).partition_start, (*acpi_info).img_size, acpiimage);
+				(*acpi_info).partition_start+vm_offset, (*acpi_info).img_size, acpiimage);
 	if (EFI_ERROR(ret)) {
 		efi_perror(ret, L"ReadDisk Error for %s image read", label);
 		FreePool(acpi_info);

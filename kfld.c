@@ -94,7 +94,7 @@ EFI_STATUS avb_ab_read_misc(AvbABData *avbABData)
 		return ret;
 	}
 	ret = uefi_call_wrapper(gpart.dio->ReadDisk, 5, gpart.dio, MediaId,
-			partition_start + 2048,
+			vm_offset + partition_start + 2048,
 			sizeof(*avbABData), avbABData);
 
 	if (EFI_ERROR(ret)) {

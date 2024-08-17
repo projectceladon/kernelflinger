@@ -58,14 +58,17 @@
 #endif
 #include "fatfs.h"
 #include "embedded_controller.h"
+extern uint64_t vm_offset;
 static struct gpt_partition_interface gparti;
+static struct gpt_partition_interface vm_gparti;
+static struct gpt_partition_interface *p_gparti = &gparti;
 static UINT64 cur_offset;
 static BOOLEAN userdata_erased = FALSE;
 static BOOLEAN share_data_erased = FALSE;
 BOOLEAN new_install_device = FALSE;
 
-#define part_start (gparti.part.starting_lba * gparti.bio->Media->BlockSize)
-#define part_end ((gparti.part.ending_lba + 1) * gparti.bio->Media->BlockSize)
+#define part_start (p_gparti->part.starting_lba * p_gparti->bio->Media->BlockSize)
+#define part_end ((p_gparti->part.ending_lba + 1) * p_gparti->bio->Media->BlockSize)
 
 #define is_inside_partition(off, sz) \
 		(off >= part_start && off + sz <= part_end)
@@ -85,7 +88,7 @@ EFI_STATUS flash_write(VOID *data, UINTN size)
 {
 	EFI_STATUS ret;
 
-	if (!gparti.bio)
+	if (!p_gparti->bio)
 		return EFI_INVALID_PARAMETER;
 
 	if (!is_inside_partition(cur_offset, size)) {
@@ -93,7 +96,7 @@ EFI_STATUS flash_write(VOID *data, UINTN size)
 				part_start, part_end, cur_offset, cur_offset + size);
 		return EFI_INVALID_PARAMETER;
 	}
-	ret = uefi_call_wrapper(gparti.dio->WriteDisk, 5, gparti.dio, gparti.bio->Media->MediaId, cur_offset, size, data);
+	ret = uefi_call_wrapper(p_gparti->dio->WriteDisk, 5, p_gparti->dio, p_gparti->bio->Media->MediaId, vm_offset + cur_offset, size, data);
 	if (EFI_ERROR(ret)) {
 		efi_perror(ret, L"Failed to write bytes");
 		return ret;
@@ -110,11 +113,11 @@ EFI_STATUS flash_fill(UINT32 pattern, UINTN size)
 	VOID *buf;
 	UINTN i, buf_size, write_size;
 
-	if (!gparti.bio || !size || size % gparti.bio->Media->BlockSize)
+	if (!p_gparti->bio || !size || size % p_gparti->bio->Media->BlockSize)
 		return EFI_INVALID_PARAMETER;
 
-	buf_size = min(gparti.bio->Media->BlockSize * N_BLOCK, size);
-	ret = alloc_aligned(&buf, (VOID **)&aligned_buf, buf_size, gparti.bio->Media->IoAlign);
+	buf_size = min(p_gparti->bio->Media->BlockSize * N_BLOCK, size);
+	ret = alloc_aligned(&buf, (VOID **)&aligned_buf, buf_size, p_gparti->bio->Media->IoAlign);
 	if (EFI_ERROR(ret)) {
 		efi_perror(ret, L"Unable to allocate the pattern buf");
 		return ret;
@@ -189,7 +192,7 @@ static EFI_STATUS _flash_gpt(VOID *data, UINTN size, logical_unit_t log_unit)
 		return gpt_create((struct gpt_header *)data, size, 0, 0, NULL, log_unit);
 
  	gb_hdr = data;
- 	gb_part = (struct gpt_bin_part *)&gb_hdr[1];
+	gb_part = (struct gpt_bin_part *)&gb_hdr[1]; //skip gpt_bin_header, so this is the first partition
 	if (size >= sizeof(*gb_hdr) &&
 	    gb_hdr->magic == GPT_BIN_MAGIC &&
 	    size == sizeof(*gb_hdr) + (gb_hdr->npart * sizeof(*gb_part)))
@@ -238,8 +241,8 @@ static EFI_STATUS flash_mbr(VOID *data, UINTN size)
 		return ret;
 	}
 
-	ret = uefi_call_wrapper(gparti.dio->WriteDisk, 5, gparti.dio,
-				gparti.bio->Media->MediaId, 0, size, data);
+	ret = uefi_call_wrapper(p_gparti->dio->WriteDisk, 5, p_gparti->dio,
+				p_gparti->bio->Media->MediaId, vm_offset + 0, size, data);
 	if (EFI_ERROR(ret))
 		efi_perror(ret, L"Failed to flash MBR");
 
@@ -295,8 +298,8 @@ static EFI_STATUS flash_new_bootimage(VOID *kernel, UINTN kernel_size,
 		error(L"Unable to get information on the boot partition");
 		return ret;
 	}
-	partlen = (gparti.part.ending_lba + 1 - gparti.part.starting_lba)
-		* gparti.bio->Media->BlockSize;
+	partlen = (p_gparti->part.ending_lba + 1 - p_gparti->part.starting_lba)
+		* p_gparti->bio->Media->BlockSize;
 
 	bootimage = AllocatePool(sizeof(*bootimage));
 	if (!bootimage) {
@@ -304,9 +307,9 @@ static EFI_STATUS flash_new_bootimage(VOID *kernel, UINTN kernel_size,
 		return EFI_OUT_OF_RESOURCES;
 	}
 
-	ret = uefi_call_wrapper(gparti.dio->ReadDisk, 5, gparti.dio,
-				gparti.bio->Media->MediaId,
-				gparti.part.starting_lba * gparti.bio->Media->BlockSize,
+	ret = uefi_call_wrapper(p_gparti->dio->ReadDisk, 5, p_gparti->dio,
+				p_gparti->bio->Media->MediaId,
+				vm_offset + p_gparti->part.starting_lba * p_gparti->bio->Media->BlockSize,
 				sizeof(*bootimage), bootimage);
 	if (EFI_ERROR(ret)) {
 		efi_perror(ret, L"Failed to load the current bootimage");
@@ -332,9 +335,9 @@ static EFI_STATUS flash_new_bootimage(VOID *kernel, UINTN kernel_size,
 		return EFI_OUT_OF_RESOURCES;
 	}
 
-	ret = uefi_call_wrapper(gparti.dio->ReadDisk, 5, gparti.dio,
-				gparti.bio->Media->MediaId,
-				gparti.part.starting_lba * gparti.bio->Media->BlockSize,
+	ret = uefi_call_wrapper(p_gparti->dio->ReadDisk, 5, p_gparti->dio,
+				p_gparti->bio->Media->MediaId,
+				vm_offset + p_gparti->part.starting_lba * p_gparti->bio->Media->BlockSize,
 				bootimage_size(bootimage), bootimage);
 	if (EFI_ERROR(ret)) {
 		efi_perror(ret, L"Failed to load the current bootimage");
@@ -420,7 +423,7 @@ static EFI_STATUS flash_new_bootimage(VOID *kernel, UINTN kernel_size,
 	}
 
 	/* Flash new the bootimage. */
-	cur_offset = gparti.part.starting_lba * gparti.bio->Media->BlockSize;
+	cur_offset = p_gparti->part.starting_lba * p_gparti->bio->Media->BlockSize;
 	ret = flash_write(new_bootimage, new_size);
 
 out1:
@@ -449,13 +452,14 @@ EFI_STATUS flash_partition(VOID *data, UINTN size, CHAR16 *label)
 	EFI_STATUS ret;
 	UINTN i;
 
-	ret = gpt_get_partition_by_label(label, &gparti, LOGICAL_UNIT_USER);
+	debug(L"flash partition label = %s\n", label);
+	ret = gpt_get_partition_by_label(label, p_gparti, LOGICAL_UNIT_USER);
 	if (EFI_ERROR(ret)) {
 		efi_perror(ret, L"Failed to get partition %s", label);
 		return ret;
 	}
 
-	cur_offset = gparti.part.starting_lba * gparti.bio->Media->BlockSize;
+	cur_offset = p_gparti->part.starting_lba * p_gparti->bio->Media->BlockSize;
 
 	if (is_sparse_image(data, size))
 		ret = flash_sparse(data, size);
@@ -465,7 +469,7 @@ EFI_STATUS flash_partition(VOID *data, UINTN size, CHAR16 *label)
 	if (EFI_ERROR(ret))
 		return ret;
 
-	if (!CompareGuid(&gparti.part.type, &EfiPartTypeSystemPartitionGuid)) {
+	if (!CompareGuid(&p_gparti->part.type, &EfiPartTypeSystemPartitionGuid)) {
 		ret = gpt_refresh();
 		if (EFI_ERROR(ret))
 			return ret;
@@ -515,6 +519,7 @@ EFI_STATUS flash(VOID *data, UINTN size, CHAR16 *label)
 	if (!StrnCmp(esp, label, StrLen(esp)))
 		return flash_into_esp(data, size, &label[ARRAY_SIZE(esp) - 1]);
 #endif
+
 	/* special cases */
 	for (i = 0; i < ARRAY_SIZE(LABEL_EXCEPTIONS); i++)
 		if (!StrCmp(LABEL_EXCEPTIONS[i].name, label))
@@ -592,23 +597,23 @@ static EFI_STATUS fast_erase_part(const CHAR16 *label)
 	EFI_STATUS ret;
 	EFI_LBA start, end, min_end;
 
-	ret = gpt_get_partition_by_label(label, &gparti, LOGICAL_UNIT_USER);
+	ret = gpt_get_partition_by_label(label, p_gparti, LOGICAL_UNIT_USER);
 	if (EFI_ERROR(ret)) {
 		efi_perror(ret, L"Failed to get partition %s", label);
 		return ret;
 	}
 
-	start = gparti.part.starting_lba;
-	end = gparti.part.ending_lba;
-	min_end = start + (FS_MGR_SIZE / gparti.bio->Media->BlockSize) + 1;
+	start = p_gparti->part.starting_lba;
+	end = p_gparti->part.ending_lba;
+	min_end = start + (FS_MGR_SIZE / p_gparti->bio->Media->BlockSize) + 1;
 
-	ret = fill_zero(gparti.bio, start, min(min_end, end));
+	ret = fill_zero(p_gparti->bio, start, min(min_end, end));
 	if (EFI_ERROR(ret)) {
 		efi_perror(ret, L"Failed to erase partition %s", label);
 		return ret;
 	}
 
-	if (!CompareGuid(&gparti.part.type, &EfiPartTypeSystemPartitionGuid))
+	if (!CompareGuid(&p_gparti->part.type, &EfiPartTypeSystemPartitionGuid))
 		return gpt_refresh();
 
 	return EFI_SUCCESS;
@@ -638,17 +643,17 @@ EFI_STATUS erase_by_label(CHAR16 *label)
 		}
 	}
 
-	ret = gpt_get_partition_by_label(label, &gparti, LOGICAL_UNIT_USER);
+	ret = gpt_get_partition_by_label(label, p_gparti, LOGICAL_UNIT_USER);
 	if (EFI_ERROR(ret)) {
 		efi_perror(ret, L"Failed to get partition %s", label);
 		return ret;
 	}
-	ret = erase_blocks(gparti.handle, gparti.bio, gparti.part.starting_lba, gparti.part.ending_lba);
+	ret = erase_blocks(p_gparti->handle, p_gparti->bio, p_gparti->part.starting_lba, p_gparti->part.ending_lba);
 	if (EFI_ERROR(ret)) {
 		efi_perror(ret, L"Failed to erase partition %s", label);
 		return ret;
 	}
-	if (!CompareGuid(&gparti.part.type, &EfiPartTypeSystemPartitionGuid))
+	if (!CompareGuid(&p_gparti->part.type, &EfiPartTypeSystemPartitionGuid))
 		return gpt_refresh();
 
 	if (is_data)
@@ -673,8 +678,8 @@ EFI_STATUS garbage_disk(void)
 		return ret;
 	}
 
-	size = gparti.bio->Media->BlockSize * N_BLOCK;
-	ret = alloc_aligned(&chunk, &aligned_chunk, size, gparti.bio->Media->IoAlign);
+	size = p_gparti->bio->Media->BlockSize * N_BLOCK;
+	ret = alloc_aligned(&chunk, &aligned_chunk, size, p_gparti->bio->Media->IoAlign);
 	if (EFI_ERROR(ret)) {
 		efi_perror(ret, L"Unable to allocate the garbage chunk");
 		return ret;
@@ -687,9 +692,18 @@ EFI_STATUS garbage_disk(void)
 		return ret;
 	}
 
-	ret = fill_with(gparti.bio, gparti.part.starting_lba,
-			gparti.part.ending_lba, aligned_chunk, N_BLOCK);
+	ret = fill_with(p_gparti->bio, p_gparti->part.starting_lba,
+			p_gparti->part.ending_lba, aligned_chunk, N_BLOCK);
 
 	FreePool(chunk);
 	return gpt_refresh();
+}
+
+void part_select(int num)
+{
+	if (num == 0)
+		p_gparti = &gparti;
+
+	else
+		p_gparti= &vm_gparti;
 }

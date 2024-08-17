@@ -49,12 +49,12 @@ struct gpt_header {
 	UINT32 size;
 	UINT32 header_crc32;
 	UINT32 reserved_zero;
-	UINT64 my_lba;
-	UINT64 alternate_lba;
-	UINT64 first_usable_lba;
-	UINT64 last_usable_lba;
+	UINT64 my_lba; //current lba, gpt head, 1
+	UINT64 alternate_lba;//backup gpt header
+	UINT64 first_usable_lba; //2 in general
+	UINT64 last_usable_lba; //bakup gpt header -1
 	EFI_GUID disk_uuid;
-	UINT64 entries_lba;
+	UINT64 entries_lba; // partition table lba
 	UINT32 number_of_entries;
 	UINT32 size_of_entry;
 	UINT32 entries_crc32;
@@ -85,9 +85,11 @@ struct gpt_partition_interface {
 	struct gpt_partition part;
 	EFI_BLOCK_IO *bio;
 	EFI_DISK_IO *dio;
+	uint64_t dio_offset;
 	EFI_HANDLE handle;
 };
 
+extern uint64_t vm_offset;
 EFI_STATUS gpt_get_partition_by_label(const CHAR16 *label, struct gpt_partition_interface *gpart, logical_unit_t log_unit);
 EFI_STATUS gpt_get_efi_partition( struct gpt_partition_interface *gpart);
 EFI_STATUS gpt_list_partition(struct gpt_partition_interface **gpartlist, UINTN *part_count, logical_unit_t log_unit);
@@ -109,4 +111,8 @@ UINT64 get_partition_size(struct gpt_partition_interface *gparti);
 UINT64 get_partition_size_by_label(const CHAR16 *label);
 EFI_STATUS read_partition(struct gpt_partition_interface *gparti, INT64 offset, UINT64 len, void *data);
 EFI_STATUS read_partition_by_label(const CHAR16 *label, INT64 offset, UINT64 len, void *data);
+
+void part_select(int num);
+void set_hard_disk();
+EFI_STATUS set_vm(const CHAR16 *vm_label);
 #endif	/* _GPT_H_ */

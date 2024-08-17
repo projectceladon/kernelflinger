@@ -203,7 +203,7 @@ static BOOLEAN frp_allows_unlock()
 	 * .dio object is a handle to the beginning of the disk */
 	offset = ((gparti.part.ending_lba + 1) * gparti.bio->Media->BlockSize) - 1;
 	ret = uefi_call_wrapper(gparti.dio->ReadDisk, 5, gparti.dio,
-				gparti.bio->Media->MediaId, offset,
+				gparti.bio->Media->MediaId, vm_offset + offset,
 				sizeof(persist_byte), &persist_byte);
 	if (EFI_ERROR(ret)) {
 		/* Pathological if this fails, GPT screwed up? */

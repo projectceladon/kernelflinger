@@ -1830,7 +1830,7 @@ EFI_STATUS android_image_load_partition(
 
         debug(L"Reading boot image header");
         ret = uefi_call_wrapper(gpart.dio->ReadDisk, 5, gpart.dio, MediaId,
-                                partition_start,
+                                vm_offset + partition_start,
                                 sizeof(aosp_header), &aosp_header);
         if (EFI_ERROR(ret)) {
                 efi_perror(ret, L"ReadDisk (header)");
@@ -1847,7 +1847,7 @@ EFI_STATUS android_image_load_partition(
                 return EFI_OUT_OF_RESOURCES;
 
         debug(L"Reading full boot image (%d bytes)", img_size);
-        ret = uefi_call_wrapper(gpart.dio->ReadDisk, 5, gpart.dio, MediaId, partition_start,
+        ret = uefi_call_wrapper(gpart.dio->ReadDisk, 5, gpart.dio, MediaId, partition_start + vm_offset,
                                 img_size, bootimage);
         if (EFI_ERROR(ret)) {
                 efi_perror(ret, L"ReadDisk");
@@ -2139,7 +2139,7 @@ EFI_STATUS read_bcb(
         debug(L"Reading BCB");
         ret = uefi_call_wrapper(gpart.dio->ReadDisk, 5, gpart.dio,
                                 gpart.bio->Media->MediaId,
-                                partition_start, sizeof(*bcb), bcb);
+                                vm_offset + partition_start, sizeof(*bcb), bcb);
         if (EFI_ERROR(ret)) {
                 efi_perror(ret, L"ReadDisk (bcb)");
                 return ret;
@@ -2170,7 +2170,7 @@ EFI_STATUS write_bcb(
         debug(L"Writing BCB");
         ret = uefi_call_wrapper(gpart.dio->WriteDisk, 5, gpart.dio,
                                 gpart.bio->Media->MediaId,
-                                partition_start, sizeof(*bcb), bcb);
+				vm_offset + partition_start, sizeof(*bcb), bcb);
         if (EFI_ERROR(ret)) {
                 efi_perror(ret, L"WriteDisk (bcb)");
                 return ret;

@@ -755,6 +755,42 @@ static void cmd_fuse_tpm2_provision_trusty_seed(INTN argc, __attribute__((__unus
 
 #endif
 
+static CHAR16 *saved_vm_label;
+static void cmd_oem_set_vm(INTN argc, CHAR8 **argv)
+{
+	EFI_STATUS ret;
+	CHAR16 *part_label;
+	struct gpt_partition_interface part;
+
+	if (argc != 2) {
+		fastboot_fail("Invalid parameter");
+		return;
+	}
+
+	part_label = stra_to_str(argv[1]);
+
+	/* Check if part_label exist*/
+	set_hard_disk();
+	ret = gpt_get_partition_by_label(part_label, &part, LOGICAL_UNIT_USER);
+	if (EFI_ERROR(ret)) {
+		error(L"Failed to find '%s' partition", part_label);
+		fastboot_fail("Unable to find partition '%s' on disk", part_label);
+		FreePool(part_label);
+		return ;
+	}
+	saved_vm_label = part_label;
+	set_vm(part_label);
+
+	fastboot_okay("");
+}
+
+static void cmd_oem_unset_vm(__attribute__((__unused__)) INTN argc, __attribute__((__unused__)) CHAR8 **argv)
+{
+	set_hard_disk();
+	FreePool(saved_vm_label);
+	fastboot_okay("");
+}
+
 static struct fastboot_cmd COMMANDS[] = {
 	{ OFF_MODE_CHARGE,		LOCKED,		cmd_oem_off_mode_charge  },
 	/* The following commands are not part of the Google
@@ -776,6 +812,8 @@ static struct fastboot_cmd COMMANDS[] = {
 #endif
 	{ "get-hashes",			LOCKED,		cmd_oem_gethashes  },
 	{ "get-provisioning-logs",	LOCKED,		cmd_oem_get_logs },
+	{ "setvm",			LOCKED,		cmd_oem_set_vm },
+	{ "unsetvm",			LOCKED,		cmd_oem_unset_vm },
 #ifdef USE_TPM
 #ifndef USER
 	{ "tpm-show-index",		LOCKED,		cmd_oem_tpm_show_index },

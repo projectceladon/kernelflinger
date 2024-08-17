@@ -843,6 +843,7 @@ static void cmd_flash(INTN argc, CHAR8 **argv)
 	}
 
 	info(L"Flashing %s ...", label);
+	debug(L"dl.data = %x, dl.size = %u", dl.data, dl.size);
 
 	ret = flash(dl.data, dl.size, label);
 	FreePool(label);

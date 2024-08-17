@@ -79,10 +79,11 @@ struct mbr {
 } __attribute__((__packed__));
 
 #define GPT_REVISION 0x00010000
-
 struct gpt_disk {
 	EFI_BLOCK_IO *bio;
 	EFI_DISK_IO *dio;
+	uint64_t dio_offset;
+	uint64_t bio_offset;
 	EFI_HANDLE handle;
 	BOOLEAN label_prefix_removed;
 	logical_unit_t log_unit;
@@ -93,6 +94,9 @@ struct gpt_disk {
 /* Allow to scan and flash only one disk at a time
  * this disk could be emmc user area or emmc gpp */
 static struct gpt_disk sdisk;
+struct gpt_disk *pdisk = &sdisk;
+static struct gpt_disk vm_disk;
+uint64_t vm_offset = 0;
 
 static EFI_STATUS calculate_crc32(void *data, UINTN size, UINT32 *crc)
 {
@@ -122,7 +126,7 @@ static EFI_STATUS read_gpt_header(struct gpt_disk *disk, UINT64 offset)
 
 	ret = uefi_call_wrapper(disk->dio->ReadDisk, 5, disk->dio,
 				disk->bio->Media->MediaId,
-				offset, sizeof(disk->gpt_hd), (VOID *)&disk->gpt_hd);
+				disk->dio_offset + offset, sizeof(disk->gpt_hd), (VOID *)&disk->gpt_hd);
 	if (EFI_ERROR(ret)) {
 		efi_perror(ret, L"Failed to read disk for GPT header at %lld",
 			   offset);
@@ -149,7 +153,7 @@ static EFI_STATUS read_master_gpt_header(struct gpt_disk *disk)
 
 static EFI_STATUS read_backup_gpt_header(struct gpt_disk *disk)
 {
-	return read_gpt_header(disk, sdisk.bio->Media->LastBlock *
+	return read_gpt_header(disk, pdisk->bio->Media->LastBlock *
 			       disk->bio->Media->BlockSize);
 }
 
@@ -171,9 +175,9 @@ static EFI_STATUS read_gpt_partitions(struct gpt_disk *disk)
 	}
 
 	offset = disk->bio->Media->BlockSize * disk->gpt_hd.entries_lba;
-	size = disk->gpt_hd.number_of_entries * disk->gpt_hd.size_of_entry;
+	size = ((UINTN)disk->gpt_hd.number_of_entries) * disk->gpt_hd.size_of_entry;
 
-	ret = uefi_call_wrapper(disk->dio->ReadDisk, 5, disk->dio, disk->bio->Media->MediaId, offset, size, disk->partitions);
+	ret = uefi_call_wrapper(disk->dio->ReadDisk, 5, disk->dio, disk->bio->Media->MediaId, disk->dio_offset + offset, size, disk->partitions);
 	if (EFI_ERROR(ret)) {
 		efi_perror(ret, L"Failed to read GPT partitions");
 		return ret;
@@ -301,7 +305,6 @@ static EFI_STATUS gpt_cache_partition(logical_unit_t log_unit)
 		ZeroMem(&sdisk.gpt_hd, sizeof(struct gpt_header));
 	}
 	ret = EFI_SUCCESS;
-
 free_handles:
 	FreePool(handles);
 	return ret;
@@ -319,7 +322,7 @@ EFI_STATUS gpt_sync(void)
 	if (!sdisk.bio)
 		return EFI_SUCCESS;
 
-	ret = uefi_call_wrapper(sdisk.bio->FlushBlocks, 1, sdisk.bio);
+	ret = uefi_call_wrapper(sdisk.bio->FlushBlocks, 1, pdisk->bio);
 	if (EFI_ERROR(ret))
 		efi_perror(ret, L"Failed to flush block io interface");
 
@@ -335,10 +338,10 @@ EFI_STATUS gpt_refresh(void)
 		return ret;
 
 	/* Nothing cached, just return */
-	if (!sdisk.bio)
+	if (!pdisk->bio)
 		return EFI_SUCCESS;
 
-	ret = uefi_call_wrapper(BS->ReinstallProtocolInterface, 4, sdisk.handle, &BlockIoProtocol, sdisk.bio, sdisk.bio);
+	ret = uefi_call_wrapper(BS->ReinstallProtocolInterface, 4, pdisk->handle, &BlockIoProtocol, pdisk->bio, pdisk->bio);
 	if (EFI_ERROR(ret)) {
 		efi_perror(ret, L"Failed to Reinstall block io interface on System disk");
 		return ret;
@@ -348,6 +351,7 @@ EFI_STATUS gpt_refresh(void)
 
 	return EFI_SUCCESS;
 }
+
 
 EFI_STATUS gpt_get_root_disk(struct gpt_partition_interface *gpart, logical_unit_t log_unit)
 {
@@ -361,9 +365,9 @@ EFI_STATUS gpt_get_root_disk(struct gpt_partition_interface *gpart, logical_unit
 		return ret;
 
 	gpart->part.starting_lba = 0;
-	gpart->part.ending_lba = sdisk.bio->Media->LastBlock;
-	gpart->bio = sdisk.bio;
-	gpart->dio = sdisk.dio;
+	gpart->part.ending_lba = pdisk->bio->Media->LastBlock;
+	gpart->bio = pdisk->bio;
+	gpart->dio = pdisk->dio;
 
 	return EFI_SUCCESS;
 }
@@ -404,10 +408,10 @@ static struct gpt_partition *gpt_find_partition(const CHAR16 *label)
 
 	android_label = make_android_label(label);
 
-	for (p = 0; p < sdisk.gpt_hd.number_of_entries; p++) {
+	for (p = 0; p < pdisk->gpt_hd.number_of_entries; p++) {
 		struct gpt_partition *part;
 
-		part = &sdisk.partitions[p];
+		part = &pdisk->partitions[p];
 		if (!CompareGuid(&part->type, &NullGuid))
 			continue;
 
@@ -571,9 +575,10 @@ EFI_STATUS gpt_get_partition_by_label(const CHAR16 *label,
 	part = gpt_find_partition(label);
 	if (part) {
 		copy_part(part, &gpart->part);
-		gpart->bio = sdisk.bio;
-		gpart->dio = sdisk.dio;
-		gpart->handle = sdisk.handle;
+		gpart->bio = pdisk->bio;
+		gpart->dio = pdisk->dio;
+		gpart->handle = pdisk->handle;
+		gpart->dio_offset = pdisk->dio_offset;
 		return EFI_SUCCESS;
 	}
 
@@ -596,24 +601,24 @@ EFI_STATUS gpt_list_partition(struct gpt_partition_interface **gpartlist, UINTN 
 		return ret;
 
 	*part_count = 0;
-	if (!sdisk.gpt_hd.number_of_entries)
+	if (!pdisk->gpt_hd.number_of_entries)
 		return EFI_SUCCESS;
 
-	*gpartlist = AllocatePool(sdisk.gpt_hd.number_of_entries * sizeof(struct gpt_partition_interface));
+	*gpartlist = AllocatePool(pdisk->gpt_hd.number_of_entries * sizeof(struct gpt_partition_interface));
 	if (!*gpartlist)
 		return EFI_OUT_OF_RESOURCES;
 
-	for (p = 0; p < sdisk.gpt_hd.number_of_entries; p++) {
+	for (p = 0; p < pdisk->gpt_hd.number_of_entries; p++) {
 		struct gpt_partition *part;
 		struct gpt_partition_interface *parti;
 
-		part = &sdisk.partitions[p];
+		part = &pdisk->partitions[p];
 		if (!CompareGuid(&part->type, &NullGuid) || !part->name[0])
 			continue;
 
 		parti = &(*gpartlist)[(*part_count)];
-		parti->bio = sdisk.bio;
-		parti->dio = sdisk.dio;
+		parti->bio = pdisk->bio;
+		parti->dio = pdisk->dio;
 		copy_part(part, &parti->part);
 		(*part_count)++;
 	}
@@ -678,7 +683,7 @@ static EFI_STATUS gpt_check_partition_list(UINTN part_count, struct gpt_bin_part
 		}
 		totsize += gbp[i].length;
 	}
-	disksize = ((sdisk.gpt_hd.last_usable_lba + 1 - sdisk.gpt_hd.first_usable_lba) * sdisk.bio->Media->BlockSize) / MiB;
+	disksize = ((pdisk->gpt_hd.last_usable_lba + 1 - pdisk->gpt_hd.first_usable_lba) * pdisk->bio->Media->BlockSize) / MiB;
 
 	if (totsize > disksize) {
 		error(L"partitions are bigger than the disk, partitions %lld MiB disk %lld MiB", totsize, disksize);
@@ -694,14 +699,14 @@ static VOID gpt_fill_entries(UINTN part_count, struct gpt_bin_part *gbp, struct 
 	UINTN i;
 
 	/* align on MiB boundaries ??? */
-	start_lba = sdisk.gpt_hd.first_usable_lba;
+	start_lba = pdisk->gpt_hd.first_usable_lba;
 
 	for (i = 0; i < part_count; i++) {
 		CopyMem(&gp[i].name, &gbp[i].label, sizeof(gp[i].name));
 		CopyMem(&gp[i].type, &gbp[i].type, sizeof(EFI_GUID));
 		CopyMem(&gp[i].unique, &gbp[i].uuid, sizeof(EFI_GUID));
 		gp[i].starting_lba = start_lba;
-		gp[i].ending_lba = start_lba - 1 + gbp[i].length * (MiB / sdisk.bio->Media->BlockSize);
+		gp[i].ending_lba = start_lba - 1 + gbp[i].length * (MiB / pdisk->bio->Media->BlockSize);
 		start_lba = gp[i].ending_lba + 1;
 		debug(L"partition %s, start %lld, end %lld", gp[i].name, gp[i].starting_lba, gp[i].ending_lba);
 	}
@@ -717,13 +722,13 @@ static EFI_STATUS gpt_write_mbr(void)
 	mbr.sig = 0xAA55;
 	mbr.entries[0].type = PROTECTIVE_MBR;
 	mbr.entries[0].first_lba = 1;
-	if (sdisk.bio->Media->LastBlock > 0xFFFFFFFFULL)
+	if (pdisk->bio->Media->LastBlock > 0xFFFFFFFFULL)
 		mbr.entries[0].lba_count = 0xFFFFFFFFULL;
 	else
-		mbr.entries[0].lba_count = sdisk.bio->Media->LastBlock;
+		mbr.entries[0].lba_count = pdisk->bio->Media->LastBlock;
 
-	ret = uefi_call_wrapper(sdisk.dio->WriteDisk, 5, sdisk.dio, sdisk.bio->Media->MediaId,
-				440, sizeof(struct mbr), &mbr);
+	ret = uefi_call_wrapper(pdisk->dio->WriteDisk, 5, pdisk->dio, pdisk->bio->Media->MediaId,
+				pdisk->dio_offset + 440, sizeof(struct mbr), &mbr);
 	if (EFI_ERROR(ret))
 		error(L"Couldn't write MBR");
 
@@ -735,20 +740,20 @@ static EFI_STATUS gpt_write_table_to_disk(struct gpt_header *gh)
 	UINT64 entries_offset, header_offset, entries_size;
 	EFI_STATUS ret;
 
-	entries_size = (UINT64) gh->number_of_entries * gh->size_of_entry;
-	header_offset = gh->my_lba * sdisk.bio->Media->BlockSize;
-	entries_offset = gh->entries_lba * sdisk.bio->Media->BlockSize;
+	entries_size = ((UINT64)gh->number_of_entries) * gh->size_of_entry;
+	header_offset = gh->my_lba * pdisk->bio->Media->BlockSize;
+	entries_offset = gh->entries_lba * pdisk->bio->Media->BlockSize;
 
-	ret = uefi_call_wrapper(sdisk.dio->WriteDisk, 5, sdisk.dio, sdisk.bio->Media->MediaId,
-				header_offset, sizeof(struct gpt_header), gh);
+	ret = uefi_call_wrapper(pdisk->dio->WriteDisk, 5, pdisk->dio, pdisk->bio->Media->MediaId,
+				pdisk->dio_offset + header_offset, sizeof(struct gpt_header), gh);
 	if (EFI_ERROR(ret)) {
 		error(L"Couldn't write GPT header");
 		return ret;
 	}
 
-	ret = uefi_call_wrapper(sdisk.dio->WriteDisk, 5, sdisk.dio, sdisk.bio->Media->MediaId,
-				entries_offset, entries_size,
-				sdisk.partitions);
+	ret = uefi_call_wrapper(pdisk->dio->WriteDisk, 5, pdisk->dio, pdisk->bio->Media->MediaId,
+				pdisk->dio_offset + entries_offset, entries_size,
+				pdisk->partitions);
 	if (EFI_ERROR(ret))
 		error(L"Couldn't write GPT entries array");
 
@@ -763,14 +768,14 @@ static EFI_STATUS gpt_write_partition_tables(void)
 	struct gpt_header *gh_backup;
 	UINT32 crc;
 
-	gh = &sdisk.gpt_hd;
+	gh = &pdisk->gpt_hd;
 
-	entries_size = gh->number_of_entries * gh->size_of_entry;
+	entries_size = ((UINT64)gh->number_of_entries) * gh->size_of_entry;
 	gh->my_lba = 1;
-	gh->alternate_lba = sdisk.bio->Media->LastBlock;
+	gh->alternate_lba = pdisk->bio->Media->LastBlock;
 	gh->entries_lba = 2;
 
-	ret = calculate_crc32(sdisk.partitions, entries_size, &crc);
+	ret = calculate_crc32(pdisk->partitions, entries_size, &crc);
 	if (EFI_ERROR(ret))
 		return ret;
 
@@ -795,9 +800,9 @@ static EFI_STATUS gpt_write_partition_tables(void)
 
 	CopyMem(gh_backup, gh, sizeof(struct gpt_header));
 
-	gh_backup->my_lba = gh->alternate_lba;
+	gh_backup->my_lba = gh->alternate_lba;//no mbr here
 	gh_backup->alternate_lba = gh->my_lba;
-	gh_backup->entries_lba = gh_backup->my_lba - entries_size / sdisk.bio->Media->BlockSize;
+	gh_backup->entries_lba = gh_backup->my_lba - entries_size / pdisk->bio->Media->BlockSize;
 
 	ret = set_header_crc32(gh_backup);
 	if (EFI_ERROR(ret))
@@ -815,7 +820,10 @@ static EFI_STATUS gpt_write_partition_tables(void)
 	if (EFI_ERROR(ret))
 		return ret;
 
-	return gpt_refresh();
+	if(pdisk == &sdisk)
+		return gpt_refresh();
+
+	return EFI_SUCCESS;
 }
 
 EFI_STATUS gpt_create(struct gpt_header *gh, UINTN gh_size,
@@ -832,18 +840,18 @@ EFI_STATUS gpt_create(struct gpt_header *gh, UINTN gh_size,
 
 	if (gh) {
 		if (CompareMem(gh->signature, EFI_PTAB_HEADER_ID, sizeof(gh->signature)) ||
-		    gh_size != GPT_HEADER_SIZE + sizeof(sdisk.partitions))
+		    gh_size != GPT_HEADER_SIZE + sizeof(pdisk->partitions))
 			return EFI_INVALID_PARAMETER;
 
-		CopyMem(&sdisk.gpt_hd, gh, sizeof(sdisk.gpt_hd));
-		CopyMem(sdisk.partitions, (char *)gh + GPT_HEADER_SIZE,
-			sizeof(sdisk.partitions));
+		CopyMem(&pdisk->gpt_hd, gh, sizeof(pdisk->gpt_hd));
+		CopyMem(pdisk->partitions, (char *)gh + GPT_HEADER_SIZE,
+			sizeof(pdisk->partitions));
 		goto out;
 	}
 
 	if (gbp) {
-		gpt_new(&sdisk.gpt_hd, start_lba, sdisk.bio->Media->BlockSize,
-			sdisk.bio->Media->LastBlock);
+		gpt_new(&pdisk->gpt_hd, start_lba, pdisk->bio->Media->BlockSize,
+			pdisk->bio->Media->LastBlock);
 
 		ret = gpt_check_partition_list(part_count, gbp);
 		if (EFI_ERROR(ret))
@@ -854,15 +862,15 @@ EFI_STATUS gpt_create(struct gpt_header *gh, UINTN gh_size,
 			return EFI_INVALID_PARAMETER;
 		}
 
-		memset_s(sdisk.partitions, sizeof(sdisk.partitions), 0, sizeof(sdisk.partitions));
-		gpt_fill_entries(part_count, gbp, sdisk.partitions);
+		memset_s(pdisk->partitions, sizeof(pdisk->partitions), 0, sizeof(pdisk->partitions));
+		gpt_fill_entries(part_count, gbp, pdisk->partitions);
 		goto out;
 	}
 
 	return EFI_INVALID_PARAMETER;
 
 out:
-	sdisk.label_prefix_removed = FALSE;
+	pdisk->label_prefix_removed = FALSE;
 	return gpt_write_partition_tables();
 }
 
@@ -1012,7 +1020,7 @@ EFI_STATUS gpt_get_header(struct gpt_header **header, UINTN *size, logical_unit_
 	if (!*header)
 		return EFI_OUT_OF_RESOURCES;
 
-	return memcpy_s(*header, *size, &sdisk.gpt_hd, *size);
+	return memcpy_s(*header, *size, &pdisk->gpt_hd, *size);
 }
 
 EFI_STATUS gpt_get_partitions(struct gpt_partition **partitions, UINTN *size, logical_unit_t log_unit)
@@ -1026,12 +1034,12 @@ EFI_STATUS gpt_get_partitions(struct gpt_partition **partitions, UINTN *size, lo
 	if (EFI_ERROR(ret))
 		return ret;
 
-	*size = sdisk.gpt_hd.number_of_entries * sizeof(*sdisk.partitions);
+	*size = pdisk->gpt_hd.number_of_entries * sizeof(*pdisk->partitions);
 	*partitions = AllocatePool(*size);
 	if (!*partitions)
 		return EFI_OUT_OF_RESOURCES;
 
-	return memcpy_s(*partitions, *size, sdisk.partitions, *size);
+	return memcpy_s(*partitions, *size, pdisk->partitions, *size);
 }
 
 UINT64 get_partition_start(struct gpt_partition_interface *gparti)
@@ -1104,4 +1112,40 @@ EFI_STATUS read_partition_by_label(const CHAR16 *label, INT64 offset, UINT64 len
 	}
 
 	return read_partition(&gpart, offset, len, data);
+}
+
+void set_hard_disk()
+{
+	vm_offset = 0;
+	pdisk = &sdisk;
+	part_select(0);
+}
+
+EFI_STATUS set_vm(const CHAR16 *vm_label)
+{
+	EFI_STATUS ret;
+	struct gpt_partition_interface part1;
+
+	set_hard_disk();
+	ret = gpt_get_partition_by_label(vm_label, &part1, LOGICAL_UNIT_USER);
+	if (EFI_ERROR(ret)) {
+		error(L"Failed to find '%s' partition", vm_label);
+		return EFI_NOT_FOUND;
+	}
+
+	pdisk = &vm_disk;
+	pdisk->bio = sdisk.bio;
+	pdisk->dio = sdisk.dio;
+	pdisk->handle = sdisk.handle;
+	pdisk->dio_offset = sdisk.bio->Media->BlockSize * part1.part.starting_lba;
+	pdisk->bio->Media->LastBlock = part1.part.ending_lba - part1.part.starting_lba;
+	pdisk->bio->Media->BlockSize = sdisk.bio->Media->BlockSize;
+	vm_offset = pdisk->dio_offset;
+
+	ret = gpt_list_partition_on_disk(pdisk);
+	if (EFI_ERROR(ret)) {
+		ZeroMem(&pdisk->gpt_hd, sizeof(struct gpt_header));
+	}
+
+	return EFI_SUCCESS;
 }

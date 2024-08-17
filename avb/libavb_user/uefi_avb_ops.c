@@ -96,8 +96,8 @@ static AvbIOResult read_from_partition(__attribute__((unused)) AvbOps* ops,
       5,
       gpart.dio,
       gpart.bio->Media->MediaId,
-      (gpart.part.starting_lba * gpart.bio->Media->BlockSize) +
-          offset_from_partition,
+      vm_offset + (gpart.part.starting_lba * gpart.bio->Media->BlockSize) +
+                offset_from_partition,
       *out_num_read,
       buf);
   if (EFI_ERROR(efi_ret)) {
@@ -168,7 +168,7 @@ static AvbIOResult write_to_partition(__attribute__((unused)) AvbOps* ops,
       5,
       gpart.dio,
       gpart.bio->Media->MediaId,
-      (gpart.part.starting_lba * gpart.bio->Media->BlockSize) +
+      vm_offset + (gpart.part.starting_lba * gpart.bio->Media->BlockSize) +
           offset_from_partition,
       num_bytes,
       (void *)buf);
