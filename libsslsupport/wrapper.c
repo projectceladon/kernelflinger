@@ -420,8 +420,7 @@ struct tm *gmtime_r(const int64_t *timep, struct tm *tmp)
 		int leapdays;
 
 		tdelta = tdays / DAYSPERLYEAR;
-		if (! ((! TYPE_SIGNED(int64_t) || INT_MIN <= tdelta)
-		       && tdelta <= INT_MAX))
+		if (tdelta < INT_MIN || tdelta > INT_MAX)
 			return NULL;
 		idelta = tdelta;
 		if (idelta == 0)

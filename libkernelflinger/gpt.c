@@ -770,7 +770,7 @@ static EFI_STATUS gpt_write_partition_tables(void)
 
 	gh = &pdisk->gpt_hd;
 
-	entries_size = ((UINT64)gh->number_of_entries) * gh->size_of_entry;
+	entries_size = (UINT64)gh->number_of_entries * gh->size_of_entry;
 	gh->my_lba = 1;
 	gh->alternate_lba = pdisk->bio->Media->LastBlock;
 	gh->entries_lba = 2;

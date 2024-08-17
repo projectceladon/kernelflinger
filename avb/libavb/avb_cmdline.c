@@ -99,6 +99,10 @@ char* avb_sub_cmdline(AvbOps* ops,
 
   avb_assert(ret != NULL);
 
+  if (ret == NULL) {
+    goto fail;
+  }
+
   /* Replace any additional substitutions. */
   if (additional_substitutions != NULL) {
     for (n = 0; n < additional_substitutions->size; ++n) {

@@ -231,7 +231,7 @@ EFI_STATUS slot_init(void)
 
 	for (i = 0; i < MAX_NB_SLOT; i++) {
 		suffixes[i] = _suffixes + i * sizeof(SUFFIX_FMT);
-		efi_snprintf((CHAR8 *)suffixes[i], sizeof(suffixes[i]),
+		efi_snprintf((CHAR8 *)suffixes[i], sizeof(SUFFIX_FMT),
 			     (CHAR8 *)SUFFIX_FMT, SLOT_START_CHAR + i);
 	}
 
