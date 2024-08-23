@@ -1739,5 +1739,16 @@ int is_running_on_kvm(void)
     return 0;
 }
 
+int is_running_on_qnx(void)
+{
+    UINT32 reg[4];
+
+    cpuid(0x40000000, reg);
+    if (reg[0] == 0x40000002 && reg[1] == 0x51584e51 && reg[2] == 0x53424d56 && reg[3] == 0x4751)
+        return 1;
+
+    return 0;
+}
+
 /* vim: softtabstop=8:shiftwidth=8:expandtab
  */
