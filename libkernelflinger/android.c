@@ -37,6 +37,7 @@
 
 #include "android.h"
 #include "efilinux.h"
+#include "ivshmem.h"
 #include "lib.h"
 #include "security.h"
 #include "vars.h"
@@ -436,6 +437,8 @@ static inline EFI_STATUS handover_jump(EFI_HANDLE image,
         UINTN map_key, i;
 
         log(L"handover jump ...\n");
+
+        ivshmem_detach();
 
         ret = setup_gdt();
         if (EFI_ERROR(ret)) {
