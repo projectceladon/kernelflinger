@@ -31,6 +31,7 @@
  */
 
 #include "ivshmem.h"
+#include "qnx_guest_shm.h"
 
 #define PCI_MAX_DEV_NUM     32
 #define PCI_MAX_FUNC_NUM    8
@@ -49,6 +50,9 @@
 
 #define IVSHMEM_DEFAULT_SIZE	0x400000
 #define IVSHMEM_ROT_OFFSET	0x100000
+
+/* QNX tee shm size in pages*/
+#define QNX_TEE_SHM_SIZE		0x500
 
 /*
  * struct pci_type0_config - Type 00h Configuration Space Header
@@ -171,11 +175,16 @@ struct ivshmem_device {
 	UINT32 bar1_len;
 	UINT32 bar2_addr;
 	UINT32 bar2_len;
+
+	volatile struct guest_shm_factory *fact;
+	volatile struct guest_shm_control *ctrl;
 };
 
 static struct ivshmem_device g_ivshmem_dev;
 
 UINT64 g_ivshmem_rot_addr = 0;
+volatile struct optee_vm_ids *smc_vm_ids = NULL;
+volatile uint32_t *smc_evt_src = NULL;
 
 static UINT8 hw_read_port_8(UINT16 port)
 {
@@ -361,6 +370,12 @@ static UINT32 pci_resource_len(UINT8 bus, UINT8 device, UINT8 function,
 static bool ivshmem_get_dev_func(void)
 {
 	UINT8 device, function;
+	UINT32 expect;
+
+	if(is_running_on_qnx())
+		expect = PCI_VID_BlackBerry_QNX | (PCI_DID_QNX_GUEST_SHM << 16);
+	else
+		expect = IVSHMEM_VENDOR_ID | (IVSHMEM_DEVICE_ID << 16);
 
 	/*
 	 * PCI devices reside in bus zero by default.
@@ -372,7 +387,9 @@ static bool ivshmem_get_dev_func(void)
 	for (device = 0; device < PCI_MAX_DEV_NUM; device++) {
 		for (function = 0; function < PCI_MAX_FUNC_NUM; function++) {
 			if (pci_read32(0, device, function, PCI_CONFIG_VENDOR_ID_OFFSET) ==
-					(IVSHMEM_VENDOR_ID | (IVSHMEM_DEVICE_ID << 16))) {
+					expect) {
+				if(is_running_on_qnx() && device != QNX_VDEV_SHM_DEV_INDEX)
+					continue;
 				g_ivshmem_dev.dev = device;
 				g_ivshmem_dev.func = function;
 				return true;
@@ -397,34 +414,75 @@ EFI_STATUS ivshmem_init(void)
 
 	dev = g_ivshmem_dev.dev;
 	func = g_ivshmem_dev.func;
-	g_ivshmem_dev.revision = pci_read8(0, dev, func, PCI_CONFIG_REVISION_OFFSET);
-	info(L"IVSHMEM device: revision=0x%x", g_ivshmem_dev.revision);
+	if(is_running_on_qnx()) {
+		g_ivshmem_dev.bar0_addr = pci_resource_start(0, dev, func, PCI_CONFIG_BAR0_OFFSET);
+		g_ivshmem_dev.bar0_len = pci_resource_len(0, dev, func, PCI_CONFIG_BAR0_OFFSET);
+		info(L"IVSHMEM device: bar0 addr=0x%x, len=0x%x",
+		  g_ivshmem_dev.bar0_addr, g_ivshmem_dev.bar0_len);
 
-	/* Enable BAR address MMIO support. */
-	val16 = pci_read16(0, dev, func, PCI_CONFIG_COMMAND_OFFSET);
-	val16 |= 1 << CMD_MEM_SPACE_BIT_POSITION;
-	pci_write16(0, dev, func, PCI_CONFIG_COMMAND_OFFSET, val16);
+		g_ivshmem_dev.fact = (struct guest_shm_factory *)(uintptr_t)g_ivshmem_dev.bar0_addr;
+		if ((g_ivshmem_dev.fact->signature & 0xFFFFFFFF) != GUEST_SHM_SIGNATURE_L
+		  || (g_ivshmem_dev.fact->signature >> 32) != GUEST_SHM_SIGNATURE_H) {
+			error(L"IVSHMEM device: Invalid ivshmem device");
+			return EFI_NOT_FOUND;
+		}
 
-	g_ivshmem_dev.bar0_addr = pci_resource_start(0, dev, func, PCI_CONFIG_BAR0_OFFSET);
-	g_ivshmem_dev.bar0_len = pci_resource_len(0, dev, func, PCI_CONFIG_BAR0_OFFSET);
-	info(L"IVSHMEM device: bar0 addr=0x%x, len=0x%x",
-		g_ivshmem_dev.bar0_addr, g_ivshmem_dev.bar0_len);
+		strcpy_s((CHAR8 *)g_ivshmem_dev.fact->name, GUEST_SHM_MAX_NAME, "tee_shmem");
+		guest_shm_create(g_ivshmem_dev.fact, QNX_TEE_SHM_SIZE);
 
-	g_ivshmem_dev.bar2_addr = pci_resource_start(0, dev, func, PCI_CONFIG_BAR2_OFFSET);
-	g_ivshmem_dev.bar2_len = pci_resource_len(0, dev, func, PCI_CONFIG_BAR2_OFFSET);
-	info(L"IVSHMEM device: bar2 addr=0x%x, len=0x%x",
-			g_ivshmem_dev.bar2_addr, g_ivshmem_dev.bar2_len);
-	if (g_ivshmem_dev.bar2_len < IVSHMEM_DEFAULT_SIZE) {
-		error(L"IVSHMEM device: bar2 size too small");
-		return EFI_BUFFER_TOO_SMALL;
-	}
+		if (g_ivshmem_dev.fact->status != GSS_OK) {
+			error(L"IVSHMEM device: invalid device status");
+			return EFI_DEVICE_ERROR;
+		}
 
-	g_ivshmem_rot_addr = g_ivshmem_dev.bar2_addr + IVSHMEM_ROT_OFFSET;
-	info(L"IVSHMEM device: rot_addr=0x%lx", g_ivshmem_rot_addr);
+		g_ivshmem_dev.ctrl = (struct guest_shm_control *)g_ivshmem_dev.fact->shmem;
+		info(L"ivshmem region ctrl status is 0x%x", g_ivshmem_dev.ctrl->status);
 
-	if (g_ivshmem_dev.revision == 1) {
-		info(L"IVSHMEM device: ivposition=%d",
-			io_read_32((void *)((UINT64)(g_ivshmem_dev.bar0_addr + IVPOSITION_OFF))));
+		if (g_ivshmem_dev.fact->size * 0x1000 < IVSHMEM_DEFAULT_SIZE) {
+			error(L"IVSHMEM device: bar2 size too small");
+			return EFI_BUFFER_TOO_SMALL;
+		}
+		info(L"IVSHMEM device: shmem len=0x%x", g_ivshmem_dev.fact->size);
+
+		smc_evt_src = (uint32_t *)(g_ivshmem_dev.fact->shmem + 0x1000);
+		smc_vm_ids = (struct optee_vm_ids *)(g_ivshmem_dev.fact->shmem + 0x1000 +
+		  sizeof(uint32_t));
+
+		smc_vm_ids->ree_id = g_ivshmem_dev.ctrl->idx;
+		info(L"IVSHMEM device: tee_id:%d ree_id:%d", smc_vm_ids->tee_id, smc_vm_ids->ree_id);
+
+		g_ivshmem_rot_addr = g_ivshmem_dev.fact->shmem + 0x1000 + IVSHMEM_ROT_OFFSET;
+
+	} else {
+		g_ivshmem_dev.revision = pci_read8(0, dev, func, PCI_CONFIG_REVISION_OFFSET);
+		info(L"IVSHMEM device: revision=0x%x", g_ivshmem_dev.revision);
+
+		/* Enable BAR address MMIO support. */
+		val16 = pci_read16(0, dev, func, PCI_CONFIG_COMMAND_OFFSET);
+		val16 |= 1 << CMD_MEM_SPACE_BIT_POSITION;
+		pci_write16(0, dev, func, PCI_CONFIG_COMMAND_OFFSET, val16);
+
+		g_ivshmem_dev.bar0_addr = pci_resource_start(0, dev, func, PCI_CONFIG_BAR0_OFFSET);
+		g_ivshmem_dev.bar0_len = pci_resource_len(0, dev, func, PCI_CONFIG_BAR0_OFFSET);
+		info(L"IVSHMEM device: bar0 addr=0x%x, len=0x%x",
+		  g_ivshmem_dev.bar0_addr, g_ivshmem_dev.bar0_len);
+
+		g_ivshmem_dev.bar2_addr = pci_resource_start(0, dev, func, PCI_CONFIG_BAR2_OFFSET);
+		g_ivshmem_dev.bar2_len = pci_resource_len(0, dev, func, PCI_CONFIG_BAR2_OFFSET);
+		info(L"IVSHMEM device: bar2 addr=0x%x, len=0x%x",
+		  g_ivshmem_dev.bar2_addr, g_ivshmem_dev.bar2_len);
+		if (g_ivshmem_dev.bar2_len < IVSHMEM_DEFAULT_SIZE) {
+			error(L"IVSHMEM device: bar2 size too small");
+			return EFI_BUFFER_TOO_SMALL;
+		}
+
+		g_ivshmem_rot_addr = g_ivshmem_dev.bar2_addr + IVSHMEM_ROT_OFFSET;
+		info(L"IVSHMEM device: rot_addr=0x%lx", g_ivshmem_rot_addr);
+
+		if (g_ivshmem_dev.revision == 1) {
+			info(L"IVSHMEM device: ivposition=%d",
+			  io_read_32((void *)((UINT64)(g_ivshmem_dev.bar0_addr + IVPOSITION_OFF))));
+		}
 	}
 
 	return EFI_SUCCESS;
@@ -432,8 +490,12 @@ EFI_STATUS ivshmem_init(void)
 
 void ivshmem_rot_interrupt(void)
 {
-	io_write_32((void *)((UINT64)(g_ivshmem_dev.bar0_addr + DOORBELL_OFF)),
-		ROT_INTERRUPT);
+	if(is_running_on_qnx()) {
+		*smc_evt_src = EVENT_ROT;
+		g_ivshmem_dev.ctrl->notify = 1 << smc_vm_ids->tee_id;
+	} else
+		io_write_32((void *)((UINT64)(g_ivshmem_dev.bar0_addr + DOORBELL_OFF)),
+			ROT_INTERRUPT);
 }
 
 #define NOT_READY_MAGIC 0x12ABCDEF
@@ -460,7 +522,12 @@ void ivshmem_rollback_index_interrupt(struct tpm2_int_req* req)
 	}
 	memcpy(p_req, req, req_size);
 
-	io_write_32((void *)((UINT64)(g_ivshmem_dev.bar0_addr + DOORBELL_OFF)), ROLLBACK_INDEX_INTERRUPT);
+	if(is_running_on_qnx()) {
+		*smc_evt_src = EVENT_ROLLBACK;
+		g_ivshmem_dev.ctrl->notify = 1 << smc_vm_ids->tee_id;
+	} else
+		io_write_32((void *)((UINT64)(g_ivshmem_dev.bar0_addr + DOORBELL_OFF)),
+			ROLLBACK_INDEX_INTERRUPT);
 
 	while (NOT_READY_MAGIC == p_req->ret) {
 		//just wait for int handler return
@@ -471,3 +538,7 @@ void ivshmem_rollback_index_interrupt(struct tpm2_int_req* req)
 	return;
 }
 
+void ivshmem_detach(void) {
+	if(is_running_on_qnx())
+		g_ivshmem_dev.ctrl->detach = 1 << smc_vm_ids->ree_id;
+}
