@@ -273,5 +273,6 @@ EFI_STATUS string_to_argv(char *str, INTN *argc, CHAR8 *argv[], UINTN max_argc,
                           const char *first_delim, const char *delim);
 
 int is_running_on_kvm(void);
+int is_running_on_qnx(void);
 #endif
 
