@@ -69,7 +69,7 @@ __RDMSR (unsigned idx)
 	return msr.val;
 }
 
-static uint64_t __attribute__((unused,always_inline))
+uint64_t __attribute__((unused,always_inline))
 __RDTSC (void)
 {
 	uint32_t lo, hi;

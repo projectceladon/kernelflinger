@@ -45,6 +45,7 @@ enum TM_POINT {
 	TM_POINT_LAST
 };
 
+uint64_t __attribute__((unused,always_inline)) __RDTSC (void);
 uint32_t get_cpu_freq(void);
 uint64_t rdtsc(void);
 uint32_t boottime_in_msec(void);
