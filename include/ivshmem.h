@@ -48,6 +48,19 @@
 #define TEE_TPM2_SHOW_INDEX             0x0000000A
 #define TEE_TPM2_DELETE_INDEX           0x0000000B
 
+#define QNX_VDEV_SHM_DEV_INDEX          6
+
+struct optee_vm_ids {
+	uint32_t ree_id;
+	uint32_t tee_id;
+} __packed;
+
+typedef enum {
+	EVENT_KERNEL = 1,
+	EVENT_ROT,
+	EVENT_ROLLBACK,
+} event_src;
+
 EFI_STATUS ivshmem_init(void);
 
 void ivshmem_rot_interrupt(void);
@@ -60,5 +73,6 @@ struct tpm2_int_req {
 };
 
 void ivshmem_rollback_index_interrupt(struct tpm2_int_req* req);
+void ivshmem_detach(void);
 
 #endif /* _IVSHMEM_H_ */
