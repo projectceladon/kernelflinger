@@ -1432,11 +1432,12 @@ EFI_STATUS fastboot_start(void **bootimage, void **efiimage, UINTN *imagesize,
 			  enum boot_target *target)
 {
 	EFI_STATUS ret;
-#if defined(IOC_USE_SLCAN) || defined(IOC_USE_CBC)
-	EFI_TIME now;
-	UINT64 expiration_time = 0;
-	UINT64 current_time;
-#endif
+	UINT32 state  = 1;
+	UINT64 tsc_total, tsc_end;
+	UINT64 timeout_sec  = 300;
+
+	tsc_total = timeout_sec * get_cpu_freq() * 1000000;
+	tsc_end = rdtsc() + tsc_total;
 
 	if (!bootimage || !efiimage || !imagesize || !target)
 		return EFI_INVALID_PARAMETER;
@@ -1472,28 +1473,24 @@ EFI_STATUS fastboot_start(void **bootimage, void **efiimage, UINTN *imagesize,
 		if (*target != UNKNOWN_TARGET)
 			break;
 #endif
-#if defined(IOC_USE_SLCAN) || defined(IOC_USE_CBC)
-		ret = uefi_call_wrapper(RT->GetTime, 2, &now, NULL);
-		if (EFI_ERROR(ret)) {
-			efi_perror(ret, L"Failed to get the current time");
-		}
-		else {
-			current_time = efi_time_to_ctime(&now);
-			if (current_time >= expiration_time) {
-				set_suppress_heart_beat_timeout(5);
-				expiration_time = TIMEOUT + current_time;
-			}
-		}
-#endif
-
 		/* Keeping this for:
 		 * - retro-compatibility with previous USB device mode
 		 *   protocol implementation;
 		 * - the installer needs to be scheduled; */
-		ret = transport_run();
+		ret = transport_run(&state);
 		if (EFI_ERROR(ret) && ret != EFI_TIMEOUT) {
 			efi_perror(ret, L"Error occurred during transport run");
 			goto exit;
+		}
+
+		if (state == 1) {
+			tsc_end = rdtsc() + tsc_total;
+		} else {
+			if (rdtsc() > tsc_end) {
+				debug(L"NO usb connected after 5 minutes, reboot to normal mode\n");
+				*target = NORMAL_BOOT;
+				break;
+			}
 		}
 
 		fastboot_run_command();
