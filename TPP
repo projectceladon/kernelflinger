@@ -1,0 +1,48 @@
+Third-party program
+
+efiwrapper
+BSD 2-Clause "Simplified" License
+Copyright (C) <2016-2024> Intel Corporation
+SPDX-License-Identifier: BSD-2-Clause
+https://github.com/projectceladon/efiwrapper
+
+codeboot
+3-Clause BSD license
+Copyright (C) <2023> Intel Corporation
+SPDX-License-Identifier: BSD-3-Clause
+https://github.com/projectceladon/coreboot
+
+EDK2
+BSD-2-Clause Plus Patent License
+Copyright (c) 2019, TianoCore and contributors
+SPDX-License-Identifier: BSD-2-Clause-Patent
+https://github.com/tianocore/edk2
+
+Modified Libgnuefi libefi
+Copyright (c) 1998-2000 Intel Corporation
+BSD License
+SPDX-License-Identifier: BSD-1-Clause
+https://github.com/projectceladon/external-gnu-efi
+
+libavb
+Copyright 2016, The Android Open Source Project,primarily licensed under the Apache License, Version 2.0
+SPDX-License-Identifier: Apache-2.0
+https://android.googlesource.com/platform/external/avb/
+
+borringssl
+OpenSSL + ISC license
+Copyright (c) 1998-2011 The OpenSSL Project.
+Copyright (c) 2015, Google Inc.
+SPDX-License-Identifier: OpenSSL + ISC
+https://github.com/google/boringssl
+
+fatfs
+BSD-style
+Copyright (C) 20xx, ChaN
+https://github.com/abbrev/fatfs
+
+AOSP-Trusty
+The Android Open Source Project, primarily licensed under the Apache License, Version 2.0
+SPDX-License-Identifier: Apache-2.0
+https://android.googlesource.com/trusty/external/trusty/+/master/ql-tipc
+
