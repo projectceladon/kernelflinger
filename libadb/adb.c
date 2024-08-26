@@ -420,11 +420,13 @@ EFI_STATUS adb_init()
 	return transport_start(adb_read_msg, adb_process_rx, adb_process_tx);
 }
 
-EFI_STATUS adb_run()
+EFI_STATUS adb_run(UINT32 *state)
 {
 	EFI_STATUS ret;
 
-	ret = transport_run();
+	if(state)
+		*state = 1;
+	ret = transport_run(NULL);
 	if (EFI_ERROR(ret) && ret != EFI_TIMEOUT) {
 		efi_perror(ret, L"Error occurred during USB run");
 		return ret;

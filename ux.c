@@ -513,7 +513,7 @@ enum boot_target ux_prompt_user_for_boot_target(enum ux_error_code code) {
 	while (1) {
 #ifdef CRASHMODE_USE_ADB
 		if (adb_initialized) {
-			ret = adb_run();
+			ret = adb_run(NULL);
 			if (EFI_ERROR(ret))
 				break;
 
