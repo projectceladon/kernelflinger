@@ -46,7 +46,7 @@ typedef struct transport {
 			    data_callback_t rx_cb,
 			    data_callback_t tx_cb);
 	EFI_STATUS (*stop)(void);
-	EFI_STATUS (*run)(void);
+	EFI_STATUS (*run)(UINT32 *state);
 	EFI_STATUS (*read)(void *buf, UINT32 size);
 	EFI_STATUS (*write)(void *buf, UINT32 size);
 } transport_t;
@@ -58,7 +58,7 @@ EFI_STATUS transport_start(start_callback_t start_cb,
 			   data_callback_t rx_cb,
 			   data_callback_t tx_cb);
 EFI_STATUS transport_stop(void);
-EFI_STATUS transport_run(void);
+EFI_STATUS transport_run(UINT32 *state);
 EFI_STATUS transport_read(void *buf, UINT32 len);
 EFI_STATUS transport_write(void *buf, UINT32 len);
 

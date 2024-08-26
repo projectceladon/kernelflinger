@@ -45,7 +45,7 @@ EFI_STATUS usb_start(UINT8 subclass,
 		     data_callback_t rx_cb,
 		     data_callback_t tx_cb);
 EFI_STATUS usb_stop(void);
-EFI_STATUS usb_run(void);
+EFI_STATUS usb_run(UINT32 *state);
 EFI_STATUS usb_read(void *buf, UINT32 size);
 EFI_STATUS usb_write(void *buf, UINT32 size);
 

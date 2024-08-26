@@ -614,11 +614,13 @@ EFI_STATUS tcp_stop(void)
 	return EFI_SUCCESS;
 }
 
-EFI_STATUS tcp_run(void)
+EFI_STATUS tcp_run(UINT32 *state)
+
 {
 	if (!tcp_connection)
 		return EFI_SUCCESS;
-
+	if (state)
+		*state = 1;
 	return uefi_call_wrapper(tcp_connection->Poll, 1,
 				 tcp_connection);
 }

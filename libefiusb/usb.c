@@ -450,7 +450,7 @@ EFI_STATUS usb_stop(void)
 	return ret;
 }
 
-EFI_STATUS usb_run(void)
+EFI_STATUS usb_run(UINT32 *state)
 {
-	return uefi_call_wrapper(usb_device->Run, 2, usb_device, 1);
+	return uefi_call_wrapper(usb_device->Run, 2, usb_device, 1, state);
 }
