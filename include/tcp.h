@@ -40,7 +40,7 @@ EFI_STATUS tcp_start(UINT32 port, start_callback_t start_cb,
 		     data_callback_t rx_cb, data_callback_t tx_cb,
 		     EFI_IPv4_ADDRESS *station_address);
 EFI_STATUS tcp_stop(void);
-EFI_STATUS tcp_run(void);
+EFI_STATUS tcp_run(UINT32 *state);
 EFI_STATUS tcp_read(void *buf, UINT32 size);
 EFI_STATUS tcp_write(void *buf, UINT32 size);
 

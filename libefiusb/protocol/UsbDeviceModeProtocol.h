@@ -82,7 +82,8 @@ typedef
 EFI_STATUS
 (EFIAPI *EFI_USB_DEVICE_MODE_RUN) (
 	IN EFI_USB_DEVICE_MODE_PROTOCOL               *This,
-	IN UINT32                                     TimeoutMs
+	IN UINT32                                     TimeoutMs,
+	UINT32 *state
 	);
 
 ///
