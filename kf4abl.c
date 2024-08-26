@@ -94,7 +94,7 @@ static EFI_STATUS enter_crashmode(enum boot_target *target)
 
 	debug(L"adb implementation is initialized");
 	for (;;) {
-		ret = adb_run();
+		ret = adb_run(NULL);
 		if (EFI_ERROR(ret))
 			break;
 

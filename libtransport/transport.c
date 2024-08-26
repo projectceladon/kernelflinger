@@ -97,9 +97,9 @@ EFI_STATUS transport_stop(void)
 	return ret;
 }
 
-EFI_STATUS transport_run(void)
+EFI_STATUS transport_run(UINT32 *state)
 {
-	return current ? current->run() : EFI_NOT_STARTED;
+	return current ? current->run(state) : EFI_NOT_STARTED;
 }
 
 EFI_STATUS transport_read(void *buf, UINT32 size)

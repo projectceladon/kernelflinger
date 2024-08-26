@@ -68,7 +68,7 @@ typedef struct adb_pkt {
 } adb_pkt_t;
 
 EFI_STATUS adb_init();
-EFI_STATUS adb_run();
+EFI_STATUS adb_run(UINT32 *state);
 EFI_STATUS adb_exit();
 enum boot_target adb_get_boot_target(void);
 void adb_set_boot_target(enum boot_target bt);
