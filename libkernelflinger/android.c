@@ -1276,6 +1276,29 @@ static INT32 diskbus_to_bdf(UINT32 diskbus)
 }
 #endif
 
+static CHAR8* find_console_prefix_end(CHAR8 *console) {
+        while (*console && (*console < '0' || *console > '9') && *console != ',' && *console != ' ' && *console != '\0') {
+                console++;
+        }
+        return console;
+}
+
+static BOOLEAN is_same_console_type(CHAR8 *sos_console, CHAR8 *kernel_console) {
+        CHAR8 *sos_prefix_end = find_console_prefix_end(sos_console);
+        CHAR8 *kernel_prefix_end = find_console_prefix_end(kernel_console);
+
+        while (sos_console < sos_prefix_end && kernel_console < kernel_prefix_end) {
+                if (*sos_console != *kernel_console) {
+                        FreePool(kernel_console);
+                        return FALSE;
+                }
+                sos_console++;
+                kernel_console++;
+        }
+
+        return (sos_console == sos_prefix_end) && (kernel_console == kernel_prefix_end);
+}
+
 /* when we call setup_command_line in EFI, parameter is EFI_GUID *swap_guid.
  * when we call setup_command_line in NON EFI, parameter is const CHAR8 *abl_cmd_line.
  * */
@@ -1563,38 +1586,41 @@ static EFI_STATUS setup_command_line(
                 cmd_conf[cmdlen] = 0;
         }
 
-        /* prepand command line from ABL */
+        /* Append command line from ABL */
         if (abl_cmd_len > 0)
         {
-                CHAR8* new_cmd_conf = AllocatePool(cmdsize);
-                if (new_cmd_conf == NULL) {
-                        ret = EFI_OUT_OF_RESOURCES;
-                        goto out;
+                CHAR8 *abl_console = strcasestr(abl_cmd_line, "console=");
+                if (abl_console) {
+                        abl_console += 8;
+
+                        CHAR8 *kernel_console = strcasestr(cmd_conf, "console=");
+                        if (kernel_console) {
+                                kernel_console += 8;
+
+                                if (is_same_console_type(abl_console, kernel_console)) {
+                                        // Remove kernel cmdline's console if abl cmdline contains same type of console
+                                        CHAR8 *kernel_console_end = strchr(kernel_console, ' ');
+                                        if (!kernel_console_end) {
+                                                kernel_console_end = kernel_console + strlen(kernel_console);
+                                        }
+                                        
+                                        UINTN console_entry_len = kernel_console_end - (kernel_console - 8);
+                                        memmove(kernel_console - 8, kernel_console_end, strlen(kernel_console_end) + 1);
+
+                                        cmdlen -= console_entry_len;
+                                        cmdsize -= console_entry_len;
+                                }
+                        }
                 }
 
-                ret = memcpy_s(new_cmd_conf, abl_cmd_len, abl_cmd_line, abl_cmd_len);
+                cmd_conf[cmdlen] = ' ';
+                ret = memcpy_s(cmd_conf + cmdlen + 1, abl_cmd_len + 1, abl_cmd_line, abl_cmd_len + 1);
                 if (EFI_ERROR(ret)) {
-                        FreePool(new_cmd_conf);
                         goto out;
                 }
-
-                if (cmdlen > 0) {
-                        new_cmd_conf[abl_cmd_len] = ' ';
-                        ret = memcpy_s(new_cmd_conf + abl_cmd_len + 1, cmdlen, cmd_conf, cmdlen);
-                        if (EFI_ERROR(ret)) {
-                                FreePool(new_cmd_conf);
-				goto out;
-			}
-		}
-
-		if (cmd_conf != NULL) {
-			FreePool(cmd_conf);
-		}
-
-		cmd_conf = new_cmd_conf;
-		cmdlen += abl_cmd_len + 1;
-		cmd_conf[cmdlen] = '\0';
-	}
+                cmdlen += abl_cmd_len + 1;
+                cmd_conf[cmdlen] = '\0';
+        }
 
 	if (is_uefi) {
 		/* Documentation/x86/boot.txt: "The kernel command line can be located
