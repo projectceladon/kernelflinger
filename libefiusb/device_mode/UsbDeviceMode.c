@@ -135,7 +135,7 @@ UsbdInit (
   )
 {
   EFI_STATUS               Status = EFI_DEVICE_ERROR;
-  USB_DEV_CONFIG_PARAMS    ConfigParams;
+  USB_DEV_CONFIG_PARAMS    ConfigParams = {0};
 
   XhciSwitchSwid(TRUE);
 
@@ -280,7 +280,7 @@ UsbdEpTxData (
   )
 {
   EFI_STATUS        Status = EFI_DEVICE_ERROR;
-  USB_XFER_REQUEST  TxReq;
+  USB_XFER_REQUEST  TxReq = {0};
 
   //
   //set endpoint data
@@ -328,7 +328,7 @@ UsbdEpRxData (
   )
 {
   EFI_STATUS        Status = EFI_DEVICE_ERROR;
-  USB_XFER_REQUEST  RxReq;
+  USB_XFER_REQUEST  RxReq = {0};
   UINT32            ReqPacket;
 
   DEBUG ((DEBUG_INFO,  "RX REQUEST in: IoReq->IoInfo.Length: 0x%x\n", IoReq->IoInfo.Length));
