@@ -434,7 +434,7 @@ EFI_STATUS erase_efivars(VOID)
 	EFI_STATUS ret;
 	UINTN bufsize, namesize;
 	CHAR16 *name;
-	EFI_GUID guid;
+	EFI_GUID guid = {0};
 	UINTN i;
 
 	bufsize = 64;		/* Initial size large enough to handle
