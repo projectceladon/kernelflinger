@@ -728,7 +728,7 @@ static EFI_STATUS efivar_find(CHAR16 *varname, EFI_GUID *guid_p)
 	EFI_STATUS ret;
 	UINTN bufsize, namesize;
 	CHAR16 *name;
-	EFI_GUID guid;
+	EFI_GUID guid={0};
 	BOOLEAN found = FALSE;
 	EFI_GUID found_guid;
 

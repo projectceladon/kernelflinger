@@ -422,7 +422,7 @@ struct tm *gmtime_r(const int64_t *timep, struct tm *tmp)
 		tdelta = tdays / DAYSPERLYEAR;
 		if (tdelta < INT_MIN || tdelta > INT_MAX)
 			return NULL;
-		idelta = tdelta;
+		idelta = (int)tdelta;
 		if (idelta == 0)
 			idelta = (tdays < 0) ? -1 : 1;
 		newy = y;
