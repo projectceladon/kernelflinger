@@ -53,5 +53,6 @@ EFI_STATUS erase_by_label(CHAR16 *label);
 EFI_STATUS garbage_disk(void);
 EFI_STATUS flash_partition(VOID *data, UINTN size, CHAR16 *label);
 EFI_STATUS fill_zero(EFI_BLOCK_IO *bio, UINT64 start, UINT64 end);
+EFI_STATUS dump_to_partition(EFI_GUID * uuid);
 
 #endif	/* _FLASH_H_ */

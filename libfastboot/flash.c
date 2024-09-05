@@ -49,6 +49,7 @@
 #include "vars.h"
 #include "bootloader.h"
 #include "authenticated_action.h"
+#include "pae.h"
 #if defined(IOC_USE_SLCAN) || defined(IOC_USE_CBC)
 #include "ioc_uart_protocol.h"
 #endif
@@ -103,7 +104,9 @@ EFI_STATUS flash_write(VOID *data, UINTN size)
 	}
 
 	cur_offset += size;
-	return EFI_SUCCESS;
+	ret = uefi_call_wrapper(gparti.bio->FlushBlocks, 1, gparti.bio);
+
+	return ret;
 }
 
 EFI_STATUS flash_fill(UINT32 pattern, UINTN size)

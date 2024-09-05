@@ -401,6 +401,13 @@ static CHAR16 *make_android_label(const CHAR16 *label)
 	return (ret == EFI_SUCCESS) ? (android_label) : (NULL);
 }
 
+void log_uid(EFI_GUID *uid)
+{
+	CHAR16 outString[100];
+	GuidToString (outString, uid);
+	debug(L"UID: %s ", outString);
+}
+
 static struct gpt_partition *gpt_find_partition(const CHAR16 *label)
 {
 	UINTN p;
@@ -416,8 +423,11 @@ static struct gpt_partition *gpt_find_partition(const CHAR16 *label)
 			continue;
 
 		if (StrCmp(part->name, label) &&
-		    (!android_label || StrCmp(part->name, android_label)))
+		    (!android_label || StrCmp(part->name, android_label))) {
+				debug(L"label %s in partition %d", part->name, p);
+				log_uid(&part->unique);
 			continue;
+			}
 
 		debug(L"Found label %s in partition %d", label, p);
 		return part;
@@ -425,6 +435,26 @@ static struct gpt_partition *gpt_find_partition(const CHAR16 *label)
 
 	return NULL;
 }
+
+static struct gpt_partition *gpt_find_partition_by_uuid(EFI_GUID * uuid)
+{
+	UINTN p;
+
+	for (p = 0; p < sdisk.gpt_hd.number_of_entries; p++) {
+		struct gpt_partition *part;
+
+		part = &sdisk.partitions[p];
+		if (CompareGuid(&part->unique, uuid))
+			continue;
+
+
+		debug(L"Found partition %d", p);
+		return part;
+	}
+
+	return NULL;
+}
+
 
 /* OneAndroid adds the "android_" prefix to the Android partition
    labels for the android partitions.  When exposing the partition
@@ -1148,4 +1178,29 @@ EFI_STATUS set_vm(const CHAR16 *vm_label)
 	}
 
 	return EFI_SUCCESS;
+}
+
+EFI_STATUS gpt_get_partition_by_uuid( EFI_GUID * uuid,
+				      struct gpt_partition_interface *gpart,
+				      logical_unit_t log_unit)
+{
+	struct gpt_partition *part;
+	EFI_STATUS ret;
+
+	if (!uuid || !gpart)
+		return EFI_INVALID_PARAMETER;
+
+	ret = gpt_cache_partition(log_unit);
+	if (EFI_ERROR(ret))
+		return ret;
+
+	part = gpt_find_partition_by_uuid(uuid);
+	if (part) {
+		copy_part(part, &gpart->part);
+		gpart->bio = sdisk.bio;
+		gpart->dio = sdisk.dio;
+		gpart->handle = sdisk.handle;
+		return EFI_SUCCESS;
+	}
+	return EFI_NOT_FOUND;
 }

@@ -1462,6 +1462,9 @@ EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table)
 	enum boot_target boot_target = NORMAL_BOOT;
 	UINT8 boot_state = BOOT_STATE_GREEN;
 	VBDATA *vb_data = NULL;
+#ifdef __CRASH_DUMP
+	EFI_GUID dump_partition =  { 0xCAB9B00C, 0xCC1B, 0x4C0F, {0xB9, 0x32, 0x82, 0x92, 0x0D, 0xA5, 0x22, 0x51} };
+#endif
 
 	set_boottime_stamp(TM_EFI_MAIN);
 	/* gnu-efi initialization */
@@ -1553,6 +1556,13 @@ EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table)
 	 * as ELK file in non efi boot. It will force bootloader enter
 	 * into fastboot mode.
 	 */
+#ifdef __CRASH_DUMP
+	debug(L"To dump RAM to partition");
+	crashdump_to_partition(&dump_partition);
+
+	reboot_to_target(NORMAL_BOOT, EfiResetCold);
+#endif
+
 #ifdef __FORCE_FASTBOOT
 	enter_fastboot_mode(boot_state);
 #endif
