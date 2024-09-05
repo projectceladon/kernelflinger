@@ -112,7 +112,8 @@ static struct memmap_context {
 
 /* Page table hierarchy. */
 static volatile EFI_PHYSICAL_ADDRESS directory[1 << DIR_BITS]
-	__attribute__((aligned(PAGE_SIZE)));
+	__attribute__((aligned(PAGE_SIZE)))
+	__attribute__((__section__(".sbss.pae")));
 static volatile EFI_PHYSICAL_ADDRESS dir_ptr[1 << 2]
 	__attribute__((aligned(0x20)));
 
@@ -212,6 +213,11 @@ EFI_STATUS pae_init(CHAR8 *entries, UINTN nr_entries, UINTN entry_sz)
 		return ret;
 
 	init_directory();
+
+	/* explicit clear the bit31 before enable the PAE */
+	asm volatile("movl %cr0, %eax\n"
+		"andl $0x7FFFFFFF, %eax\n"
+		"movl %eax, %cr0\n");
 
 	/* Set bit 5 in CR4 to enable PAE. */
 	asm volatile("movl %cr4, %eax\n"

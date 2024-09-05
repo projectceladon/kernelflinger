@@ -85,4 +85,6 @@ EFI_STATUS refresh_partition_var(void);
 
 void fastboot_reboot(enum boot_target target, CHAR16 *msg);
 
+EFI_STATUS crashdump_to_partition(EFI_GUID *uuid);
+
 #endif	/* _FASTBOOT_H_ */
