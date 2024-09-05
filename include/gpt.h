@@ -111,6 +111,7 @@ UINT64 get_partition_size(struct gpt_partition_interface *gparti);
 UINT64 get_partition_size_by_label(const CHAR16 *label);
 EFI_STATUS read_partition(struct gpt_partition_interface *gparti, INT64 offset, UINT64 len, void *data);
 EFI_STATUS read_partition_by_label(const CHAR16 *label, INT64 offset, UINT64 len, void *data);
+EFI_STATUS gpt_get_partition_by_uuid(EFI_GUID * uuid,struct gpt_partition_interface *gpart,logical_unit_t log_unit);
 
 void part_select(int num);
 void set_hard_disk();

@@ -165,6 +165,7 @@ static const CHAR16 *memory_types[] = {
         L"EfiMemoryMappedIO",
         L"EfiMemoryMappedIOPortSpace",
         L"EfiPalCode",
+        L"EfiVENDOR_RSVD",
 };
 
 static inline const CHAR16 *memory_type_to_str(UINT32 type)
