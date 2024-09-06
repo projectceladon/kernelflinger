@@ -358,6 +358,10 @@ static unsigned huffman_decode_symbol(upng_t *upng, const unsigned char *in,
 
 		bit = read_bit(bp, in);
 
+		if (codetree->tree2d == NULL){
+			SET_ERROR(upng, EFI_INVALID_PARAMETER);
+                        return 0;
+		}
 		ct = codetree->tree2d[(treepos << 1) | bit];
 		if (ct < codetree->numcodes) {
 			return ct;
@@ -564,8 +568,8 @@ static void inflate_huffman(upng_t* upng, unsigned char* out, unsigned long outs
 	unsigned codetreeD_buffer[DISTANCE_BUFFER_SIZE];
 	unsigned done = 0;
 
-	huffman_tree codetree;
-	huffman_tree codetreeD;
+	huffman_tree codetree = {0};
+	huffman_tree codetreeD = {0};
 
 	if (btype == 1) {
 		/* fixed trees */
