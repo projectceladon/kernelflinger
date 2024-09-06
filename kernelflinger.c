@@ -1109,7 +1109,7 @@ static VOID enter_fastboot_mode(UINT8 boot_state)
 
 	die();
 }
-static void bootloader_recover_mode(UINT8 boot_state)
+static void bootloader_recover_mode(UINT8 boot_state __unused)
 {
 	enum boot_target target;
 
@@ -1136,8 +1136,8 @@ static void bootloader_recover_mode(UINT8 boot_state)
 	die();
 }
 
-static VOID boot_error(enum ux_error_code error_code, UINT8 boot_state,
-			UINT8 *hash, UINTN hash_size)
+static VOID boot_error(enum ux_error_code error_code __unused, UINT8 boot_state,
+			UINT8 *hash __unused, UINTN hash_size __unused)
 {
 	BOOLEAN power_off = FALSE;
 	enum boot_target bt;
@@ -1241,8 +1241,7 @@ EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table)
 	/* For civ, flash images to disk is not MUST. So set device to LOCKED
 	 * state by default on the first boot.
 	*/
-	if (need_lock)
-		set_current_state(LOCKED);
+	set_current_state(UNLOCKED);
 
 	ret = set_device_security_info(NULL);
 	if (EFI_ERROR(ret)) {
