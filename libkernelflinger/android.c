@@ -1274,6 +1274,9 @@ static INT32 diskbus_to_bdf(UINT32 diskbus)
 
         return bridge_diskbus(storage_bus_num);
 }
+
+extern UINT64 efiwrapper_tsc();
+
 #endif
 
 static CHAR8* find_console_prefix_end(CHAR8 *console) {
@@ -1334,6 +1337,9 @@ static EFI_STATUS setup_command_line(
 #ifdef USE_SBL
 	const char *cmd_for_kernel = NULL;
 	char *tmp = NULL;
+	UINT64 tick;
+	UINT32 bt_us, bt_ms;
+	UINT32 cpu_freq;
 #endif
 
 	is_uefi = is_UEFI();
@@ -1544,6 +1550,20 @@ static EFI_STATUS setup_command_line(
 		goto out;
 	/* append stages boottime */
 	set_boottime_stamp(TM_JMP_KERNEL);
+#ifdef USE_SBL
+	cpu_freq = get_cpu_freq();
+	if (cpu_freq != 0) {
+		tick = efiwrapper_tsc();
+		bt_us = (((unsigned) (tick >> 6)) / cpu_freq) << 6;
+		bt_ms = bt_us / 1000;
+
+		debug(L"efiwarrper start time: %u ms\n", bt_ms);
+		debug(L"cpu_freq: %u Mhz\n", cpu_freq);
+
+		set_efi_enter_point(bt_ms);
+	}
+#endif
+
 	construct_stages_boottime(time_str8, sizeof(time_str8));
 	time_str16 = stra_to_str(time_str8);
 	if (time_str16) {
