@@ -84,7 +84,7 @@ static EFI_STATUS find_load_option_entry(CHAR16 *description, UINT16 *entry)
 	EFI_GUID guid = {0};
 	CHAR8 number[5];
 	UINTN size;
-	EFI_LOAD_OPTION *load_option;
+	EFI_LOAD_OPTION *load_option = NULL;
 	UINT32 flags;
 
 	bufsize = 64;		/* Initial size large enough to handle
