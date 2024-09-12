@@ -5192,7 +5192,7 @@ FRESULT f_rename (
 {
 	FRESULT res;
 	FATFS *fs;
-	DIR djo, djn;
+	DIR djn = {0}, djo = {0};
 	BYTE buf[FF_FS_EXFAT ? SZDIRE * 2 : SZDIRE], *dir;
 	LBA_t sect;
 	DEF_NAMBUF
