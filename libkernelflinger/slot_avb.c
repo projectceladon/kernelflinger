@@ -319,8 +319,10 @@ const CHAR16 *slot_base(const CHAR16 *label)
 	if (label_len < SUFFIX_LEN)
 		return NULL;
 
-	str_to_stra((CHAR8 *)suffix, &label[label_len - SUFFIX_LEN],
-		    sizeof(suffix));
+	if (EFI_ERROR(str_to_stra((CHAR8 *)suffix, &label[label_len - SUFFIX_LEN],
+                   sizeof(suffix))))
+		return NULL;
+
 	if (!is_suffix(suffix))
 		return NULL;
 
