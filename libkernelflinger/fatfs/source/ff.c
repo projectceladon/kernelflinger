@@ -1066,7 +1066,8 @@ static FRESULT sync_window (	/* Returns FR_OK or FR_DISK_ERR */
 			fs->wflag = 0;	/* Clear window dirty flag */
 			if (fs->winsect - fs->fatbase < fs->fsize) {	/* Is it in the 1st FAT? */
 				if (fs->n_fats == 2) {
-				   disk_write(fs->pdrv, fs->win, fs->winsect + fs->fsize, 1);	/* Reflect it to 2nd FAT if needed */
+				   if (disk_write(fs->pdrv, fs->win, fs->winsect + fs->fsize, 1) != RES_OK)	/* Reflect it to 2nd FAT if needed */
+						res = FR_DISK_ERR;
 				} else {
 				}
 			} else {
@@ -1129,7 +1130,8 @@ static FRESULT sync_fs (	/* Returns FR_OK or FR_DISK_ERR */
 			st_dword(fs->win + FSI_Free_Count, fs->free_clst);	/* Number of free clusters */
 			st_dword(fs->win + FSI_Nxt_Free, fs->last_clst);	/* Last allocated culuster */
 			fs->winsect = fs->volbase + 1;						/* Write it into the FSInfo sector (Next to VBR) */
-			disk_write(fs->pdrv, fs->win, fs->winsect, 1);
+			if (disk_write(fs->pdrv, fs->win, fs->winsect, 1) != RES_OK)
+				res = FR_DISK_ERR;
 			fs->fsi_flag = 0;
 		}
 		/* Make sure that no pending write process in the lower layer */
