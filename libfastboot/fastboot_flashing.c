@@ -128,11 +128,15 @@ EFI_STATUS change_device_state(enum device_state new_state, BOOLEAN interactive)
 			ret = read_rollback_index_tpm2(slot, &idx);
 			if (EFI_SUCCESS == ret) {
 				ret = write_rollback_index_tpm2(slot, 0);
+				if (EFI_ERROR(ret))
+					return ret;
 			}
 #else
 			ret = read_efi_rollback_index(slot, &idx);
 			if (EFI_SUCCESS == ret) {
 				ret = write_efi_rollback_index(slot, 0);
+				if (EFI_ERROR(ret))
+					return ret;
 			}
 #endif
 		}
