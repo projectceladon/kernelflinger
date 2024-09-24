@@ -800,26 +800,27 @@ char *get_device_id(void)
 
 char *get_serialno_var()
 {
-	CHAR8 *data;
+	CHAR8 *data = NULL;
 	EFI_STATUS ret;
-	UINTN size;
+	UINTN size = 0;
 	BOOLEAN dataFreeable = FALSE;
 
 	ret = get_efi_variable(&loader_guid, SERIAL_NUM_VAR, &size, (VOID **)&data,NULL);
 
 	if (!EFI_ERROR(ret) && data && size) {
 		dataFreeable = TRUE;
-	}
-	if (EFI_ERROR(ret) || !data || !size) {
-		if (dataFreeable && data) {
+	} else {
+		if (data) {
 			FreePool(data);
 		}
 		return NULL;
 	}
+
 	if (data[size - 1] != '\0') {
 		FreePool(data);
 		return NULL;
 	}
+
 	return (char *)data;
 }
 
@@ -827,6 +828,7 @@ char *get_serialno_var()
  * ^[a-zA-Z0-9](6,20)$  */
 char *get_serial_number(void)
 {
+	EFI_STATUS ret;
 	static char bios_serialno[SERIALNO_MAX_SIZE + 1];
 	static char serialno[SERIALNO_MAX_SIZE + 1];
 	char *pos;
@@ -883,7 +885,10 @@ char *get_serial_number(void)
 
 	return serialno;
 bad:
-	strncpy_s((CHAR8 *)serialno, sizeof(serialno), (CHAR8 *)"00badbios00badbios00", SERIALNO_MAX_SIZE);
+	ret = strncpy_s((CHAR8 *)serialno, sizeof(serialno), (CHAR8 *)"00badbios00badbios00", SERIALNO_MAX_SIZE);
+	if (EFI_ERROR(ret))
+		return NULL;
+
 	return serialno;
 }
 
