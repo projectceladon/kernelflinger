@@ -840,19 +840,18 @@ CHAR16 *get_efi_variable_str(const EFI_GUID *guid, CHAR16 *key)
 
 CHAR16 *get_efi_variable_str8(const EFI_GUID *guid, CHAR16 *key)
 {
-        CHAR8 *data;
+        CHAR8 *data = NULL;
         CHAR16 *value;
         EFI_STATUS ret;
-        UINTN size;
+        UINTN size = 0;
         BOOLEAN dataFreeable = FALSE;
 
         ret = get_efi_variable(guid, key, &size, (VOID **)&data, NULL);
 
         if (!EFI_ERROR(ret) && data && size) {
                 dataFreeable = TRUE;
-        }
-        if (EFI_ERROR(ret) || !data || !size) {
-                if (dataFreeable && data) {
+        } else {
+                if (data) {
                         FreePool(data);
                 }
                 return NULL;
