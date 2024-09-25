@@ -102,12 +102,12 @@ static void ui_textarea_copy_char(unsigned char *src_p, UINTN src_row_bytes,
 		unsigned char* px = dst_p;
 		for (i = 0; i < width; ++i) {
 			unsigned char a = *sx++;
-			if (a == 255) {
+			if (a == 255 && color) {
 				*px++ = color->Blue;
 				*px++ = color->Green;
 				*px++ = color->Red;
 				px++;
-			} else if (a > 0) {
+			} else if (a > 0 && color) {
 				*px = (*px * (255-a) + color->Blue * a) / 255;
 				++px;
 				*px = (*px * (255-a) + color->Green * a) / 255;
