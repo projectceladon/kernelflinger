@@ -225,7 +225,7 @@ static EFI_STATUS installer_flash_big_chunk_multiple(EFI_FILE **file, UINTN *rea
 
 	for (ckh_blks = ckh->chunk_sz; ckh_blks; ckh_blks -= ckh->chunk_sz) {
 		ckh->chunk_sz = min(MAX_BLKS, ckh_blks);
-		data_size = ckh->chunk_sz * fb->sph.blk_sz;
+		data_size = (UINTN)ckh->chunk_sz * (UINTN)fb->sph.blk_sz;
 		ckh->total_sz = sizeof(*ckh) + data_size;
 		fb->sph.total_blks = fb->skip_ckh.chunk_sz + ckh->chunk_sz;
 		installer_flash_buffer(fb, ckh->total_sz + HEADER_SIZE, argc, argv);
@@ -290,7 +290,7 @@ static EFI_STATUS installer_flash_big_chunk(EFI_FILE *file, UINTN *remaining_dat
 
 	for (ckh_blks = ckh->chunk_sz; ckh_blks; ckh_blks -= ckh->chunk_sz) {
 		ckh->chunk_sz = min(MAX_BLKS, ckh_blks);
-		data_size = ckh->chunk_sz * fb->sph.blk_sz;
+		data_size = (UINTN)ckh->chunk_sz * (UINTN)fb->sph.blk_sz;
 		ckh->total_sz = sizeof(*ckh) + data_size;
 		fb->sph.total_blks = fb->skip_ckh.chunk_sz + ckh->chunk_sz;
 
