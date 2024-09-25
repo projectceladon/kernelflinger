@@ -627,11 +627,11 @@ void ui_bilinear_scale(unsigned char *s, unsigned char *d,
 			int y1 = y;
 			int y2 = y1 + 1;
 			for (k = 0; k < depth; k++) {
-				d[j * depth + i * dx * depth + k] = (1 / ((x2 - x1) * (y2 - y1))) *
+				d[j * depth + i * dx * depth + k] =(int)((1 / ((x2 - x1) * (y2 - y1))) *
 					(s[x1 * depth + y1 * sx + k] * (x2 - x) * (y2 - y) +
 					 s[x2 * depth + y1 * sx + k] * (x - x1) * (y2 - y) +
 					 s[x1 * depth + y2 * sx + k] * (x2 - x) * (y - y1) +
-					 s[x2 * depth + y2 * sx + k] * (x - x1) * (y - y1));
+					 s[x2 * depth + y2 * sx + k] * (x - x1) * (y - y1)));
 			}
 		}
 }
