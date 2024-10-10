@@ -433,7 +433,7 @@ static inline EFI_STATUS handover_jump(EFI_HANDLE image,
                                        EFI_PHYSICAL_ADDRESS kernel_start)
 {
         EFI_STATUS ret = EFI_LOAD_ERROR;
-        UINTN map_key, i;
+        UINTN map_key, i, j;
 
         log(L"handover jump ...\n");
 
@@ -450,7 +450,7 @@ static inline EFI_STATUS handover_jump(EFI_HANDLE image,
          * Hence, we give two chances to ExitBootServices() to
          * succeed.
          */
-        for (i = 0; i < 2; i++) {
+        for (i = 0; i < 10; i++) {
                 ret = setup_memory_map(boot_params, &map_key);
                 if (EFI_ERROR(ret)) {
                         efi_perror(ret, L"Failed to setup memory map");
@@ -461,10 +461,16 @@ static inline EFI_STATUS handover_jump(EFI_HANDLE image,
                  * ExitBootServices() call or memory_map key might mismatch
                  * and ExitBootServices call might fail.
                  */
-
+                j=0;
                 ret = uefi_call_wrapper(BS->ExitBootServices, 2, image, map_key);
                 if (!EFI_ERROR(ret))
                         goto boot;
+		/* FixMe: Temporary change to fix RAM instability by adding
+                 * delay in few MTL Boards. This change needs to be reworked.
+                 */
+                do{
+                j+=1;
+                }while(j<2000);
         }
 
         return ret;
