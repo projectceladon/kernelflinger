@@ -1340,8 +1340,8 @@ static EFI_STATUS setup_command_line(
 #ifdef USE_SBL
 	const char *cmd_for_kernel = NULL;
 	char *tmp = NULL;
-	UINT64 tick;
-	UINT32 bt_us, bt_ms;
+	UINT64 tick, bt_us;
+	UINT32 bt_ms;
 	UINT32 cpu_freq;
 #endif
 
@@ -1557,12 +1557,12 @@ static EFI_STATUS setup_command_line(
 	cpu_freq = get_cpu_freq();
 	if (cpu_freq != 0) {
 		tick = efiwrapper_tsc();
-		bt_us = (((unsigned) (tick >> 6)) / cpu_freq) << 6;
-		bt_ms = bt_us / 1000;
+		bt_us = tick  / cpu_freq;
+		bt_ms = (UINT32)(bt_us / 1000);
 
 		debug(L"efiwarrper start time: %u ms\n", bt_ms);
 		debug(L"cpu_freq: %u Mhz\n", cpu_freq);
-
+		debug(L"KF resume time: %u ms", boottime_in_msec() - bt_ms);
 		set_efi_enter_point(bt_ms);
 	}
 #endif
