@@ -98,10 +98,8 @@ EFI_STATUS init_rot_data(
 /* Return rot data instance pointer*/
 struct rot_data_t *get_rot_data();
 
-#ifdef USE_IVSHMEM
 EFI_STATUS ivsh_send_rot_data(IN VOID *bootimage, IN UINT8 boot_state,
         IN VBDATA *vb_data);
-#endif
 
 EFI_STATUS raw_pub_key_sha256(
         IN const UINT8 *pub_key,
