@@ -124,21 +124,28 @@ EFI_STATUS change_device_state(enum device_state new_state, BOOLEAN interactive)
  */
 		for (int slot = 0; slot < 2; slot++) {
 			uint64_t idx;
-#ifdef USE_TPM
-			ret = read_rollback_index_tpm2(slot, &idx);
-			if (EFI_SUCCESS == ret) {
-				ret = write_rollback_index_tpm2(slot, 0);
-				if (EFI_ERROR(ret))
-					return ret;
+			if (tee_tpm) {
+				ret = tee_read_rollback_index_tpm2(slot, &idx);
+				if (EFI_SUCCESS == ret) {
+					ret = tee_write_rollback_index_tpm2(slot, 0);
+					if (EFI_ERROR(ret))
+						return ret;
+				}
+			} else if (andr_tpm) {
+				ret = read_rollback_index_tpm2(slot, &idx);
+				if (EFI_SUCCESS == ret) {
+					ret = write_rollback_index_tpm2(slot, 0);
+					if (EFI_ERROR(ret))
+						return ret;
+				}
+			} else {
+				ret = read_efi_rollback_index(slot, &idx);
+				if (EFI_SUCCESS == ret) {
+					ret = write_efi_rollback_index(slot, 0);
+					if (EFI_ERROR(ret))
+						return ret;
+				}
 			}
-#else
-			ret = read_efi_rollback_index(slot, &idx);
-			if (EFI_SUCCESS == ret) {
-				ret = write_efi_rollback_index(slot, 0);
-				if (EFI_ERROR(ret))
-					return ret;
-			}
-#endif
 		}
 	}
 
