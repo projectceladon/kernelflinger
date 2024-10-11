@@ -55,9 +55,7 @@
 #include "installer_ui.h"
 #include "ui.h"
 #endif
-#ifdef USE_TPM
 #include "tpm2_security.h"
-#endif
 
 static BOOLEAN last_cmd_succeeded;
 static fastboot_handle fastboot_flash_cmd;
@@ -70,6 +68,14 @@ static UINTN fastboot_cmd_buf_len;
 static char command_buffer[256]; /* Large enough to fit long filename
 				    on flash command.  */
 static struct download_buffer *dl;
+
+BOOLEAN tee_tpm = false;
+
+#ifdef USE_TPM
+BOOLEAN andr_tpm = true;
+#else
+BOOLEAN andr_tpm = false;
+#endif
 
 #define inst_perror(ret, x, ...) do { \
 	fastboot_fail(x ": %r", ##__VA_ARGS__, ret); \
