@@ -515,16 +515,15 @@ static EFI_STATUS publish_slots(void)
 
 static EFI_STATUS publish_partsize(void)
 {
-	EFI_STATUS ret;
+	EFI_STATUS ret = EFI_SUCCESS;
 	struct gpt_partition_interface *gparti = NULL;
 	UINTN part_count;
 	UINTN i;
 
 	ret = gpt_list_partition(&gparti, &part_count, LOGICAL_UNIT_USER);
 	if (EFI_ERROR(ret) || part_count == 0) {
-		if (gparti)
-			FreePool(gparti);
-		return EFI_SUCCESS;
+		ret = EFI_SUCCESS;
+		goto out;
 	}
 
 	for (i = 0; i < part_count; i++) {
@@ -535,27 +534,27 @@ static EFI_STATUS publish_partsize(void)
 
 		ret = publish_part(gparti[i].part.name, size, &gparti[i].part.type);
 		if (EFI_ERROR(ret))
-			return ret;
+			goto out;
 
 		/* stay compatible with userdata/data naming */
 		if (!StrCmp(gparti[i].part.name, L"data")) {
 			ret = publish_part(L"userdata", size, &gparti[i].part.type);
 			if (EFI_ERROR(ret)) {
-				FreePool(gparti);
-				return ret;
+				goto out;
 			}
 		} else if (!StrCmp(gparti[i].part.name, L"userdata")) {
 			ret = publish_part(L"data", size, &gparti[i].part.type);
 			if (EFI_ERROR(ret)) {
-				FreePool(gparti);
-				return ret;
+				goto out;
 			}
 		}
 	}
 
-	FreePool(gparti);
+out:
+	if (gparti)
+		FreePool(gparti);
 
-	return EFI_SUCCESS;
+	return ret;
 }
 
 static const char *get_battery_voltage_var()
