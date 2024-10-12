@@ -141,7 +141,8 @@ static void adb_read_msg_payload()
 /* ADB commands */
 static void cmd_unsupported(adb_pkt_t *pkt)
 {
-	char cmd[5] = { '\0', '\0', '\0', '\0', '\0' };
+	char cmd[5];
+
 	*(UINT32 *)cmd = pkt->msg.command;
 	*(UINT32 *)cmd = MKID(cmd[0], cmd[1], cmd[2], cmd[3]);
 
