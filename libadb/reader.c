@@ -327,8 +327,10 @@ static EFI_STATUS ram_open(reader_ctx_t *ctx, UINTN argc, char **argv)
 
 static EFI_STATUS ram_read(reader_ctx_t *ctx, unsigned char **buf, UINT64 *len)
 {
-	struct ram_priv *priv = ctx->private;
+	struct ram_priv *priv;
 	struct chunk_header *chunk;
+
+	priv = (struct ram_priv *)ctx->private;
 
 	/* First byte, send the sparse header */
 	if (ctx->cur == 0) {
@@ -347,6 +349,9 @@ static EFI_STATUS ram_read(reader_ctx_t *ctx, unsigned char **buf, UINT64 *len)
 			error(L"Invalid parameter in %a", __func__);
 			return EFI_INVALID_PARAMETER;
 		}
+
+		if (priv->cur_chunk >= (MAX_MEMORY_REGION_NB-1))
+			return EFI_INVALID_PARAMETER;
 
 		chunk = &priv->chunks[priv->cur_chunk++];
 		*buf = (unsigned char *)chunk;
