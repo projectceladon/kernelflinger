@@ -5171,7 +5171,7 @@ FRESULT f_mkdir (
 					res = sync_fs(fs);
 				}
 			} else {
-				remove_chain(&sobj, dcl, 0);		/* Could not register, remove the allocated cluster */
+				res = remove_chain(&sobj, dcl, 0);		/* Could not register, remove the allocated cluster */
 			}
 		}
 		FREE_NAMBUF();

@@ -523,7 +523,6 @@ static EFI_STATUS vmcore_build_header(reader_ctx_t *ctx, void *priv_p)
 
 		if (priv->m.end && end > priv->m.end) {
 			length -= end - priv->m.end;
-			end = priv->m.end;
 		}
 
 		priv->hdr.phnum++;
@@ -581,7 +580,7 @@ static EFI_STATUS vmcore_read(reader_ctx_t *ctx, unsigned char **buf, UINT64 *le
 
 	/* Start new memory region */
 	if (priv->m.cur == priv->m.cur_end) {
-		if (priv->cur_phdr == priv->hdr.phnum - 1) {
+		if (priv->cur_phdr >= priv->hdr.phnum - 1) {
 			error(L"Invalid parameter in %a", __func__);
 			return EFI_INVALID_PARAMETER;
 		}
