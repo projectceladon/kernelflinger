@@ -659,10 +659,12 @@ EFI_STATUS erase_by_label(CHAR16 *label)
 	if (!CompareGuid(&p_gparti->part.type, &EfiPartTypeSystemPartitionGuid))
 		return gpt_refresh();
 
+#ifdef USER
 	if (is_data)
 		userdata_erased = TRUE;
 	if (is_share_data)
 		share_data_erased = TRUE;
+#endif
 
 	return EFI_SUCCESS;
 }
