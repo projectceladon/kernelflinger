@@ -31,7 +31,9 @@
 #include "lib.h"
 #include "log.h"
 #include "security.h"
+#ifdef USE_TPM
 #include "tpm2_security.h"
+#endif
 
 extern char _binary_avb_pk_start;
 extern char _binary_avb_pk_end;
@@ -255,12 +257,11 @@ static AvbIOResult read_rollback_index(__attribute__((unused)) AvbOps* ops,
   if (is_live_boot())
     ret = EFI_NOT_FOUND;
   else {
-    if (tee_tpm)
-      ret = tee_read_rollback_index_tpm2(rollback_index_slot, out_rollback_index);
-    else if (andr_tpm)
-      ret = read_rollback_index_tpm2(rollback_index_slot, out_rollback_index);
-    else
-      ret = read_efi_rollback_index(rollback_index_slot, out_rollback_index);
+#ifdef USE_TPM
+    ret = read_rollback_index_tpm2(rollback_index_slot, out_rollback_index);
+#else
+    ret = read_efi_rollback_index(rollback_index_slot, out_rollback_index);
+#endif
   }
 
   if (ret == EFI_NOT_FOUND) {
@@ -286,12 +287,11 @@ static AvbIOResult write_rollback_index(__attribute__((unused)) AvbOps* ops,
   if (is_live_boot())
     ret = EFI_SUCCESS;
   else {
-    if (tee_tpm)
-      ret = tee_write_rollback_index_tpm2(rollback_index_slot, rollback_index);
-    else if (andr_tpm)
-      ret = write_rollback_index_tpm2(rollback_index_slot, rollback_index);
-    else
-      ret = write_efi_rollback_index(rollback_index_slot, rollback_index);
+#ifdef USE_TPM
+    ret = write_rollback_index_tpm2(rollback_index_slot, rollback_index);
+#else
+    ret = write_efi_rollback_index(rollback_index_slot, rollback_index);
+#endif
   }
   if (EFI_ERROR(ret)) {
     efi_perror(ret, L"Couldn't write rollback index");

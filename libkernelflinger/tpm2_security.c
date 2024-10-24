@@ -54,6 +54,8 @@ EFI_STATUS tpm2_fuse_bootloader_policy(
 	return EFI_UNSUPPORTED;
 }
 
+#ifndef USE_IVSHMEM
+
 enum NV_INDEX {
 	NV_INDEX_TRUSTYOS_SEED = 0x01500080,
 	NV_INDEX_OPTEEOS_SEED = 0x01500081,
@@ -830,9 +832,9 @@ EFI_STATUS tpm2_init(void)
 		return ret;
 
 	if (is_platform_secure_boot_enabled())
-		debug(L"Android TPM init OK. Secure boot ENABLED.");
+		debug(L"TPM init OK. Secure boot ENABLED.");
 	else
-		debug(L"Android TPM init OK. Secure boot DISABLED.");
+		debug(L"TPM init OK. Secure boot DISABLED.");
 
 	return ret;
 }
@@ -847,9 +849,10 @@ EFI_STATUS tpm2_end(void)
 	return EFI_SUCCESS;
 }
 
+#else //USE_IVSHMEM
 ////////////////////////////TPM Requests are forwared to OPTEE/////////////////////////////
 
-EFI_STATUS tee_tpm2_init(void)
+EFI_STATUS tpm2_init(void)
 {
 	struct tpm2_int_req req = {0};
 	req.cmd = TEE_TPM2_INIT;
@@ -861,14 +864,14 @@ EFI_STATUS tee_tpm2_init(void)
 	}
 
 	if (is_platform_secure_boot_enabled())
-		debug(L"TEE TPM init OK. Secure boot ENABLED.");
+		debug(L"TPM init OK. Secure boot ENABLED.");
 	else
-		debug(L"TEE TPM init OK. Secure boot DISABLED.");
+		debug(L"TPM init OK. Secure boot DISABLED.");
 
 	return req.ret;
 }
 
-EFI_STATUS tee_tpm2_end(void)
+EFI_STATUS tpm2_end(void)
 {
 	struct tpm2_int_req req = {0};
 	req.cmd = TEE_TPM2_END;
@@ -877,7 +880,7 @@ EFI_STATUS tee_tpm2_end(void)
 	return req.ret;
 }
 
-EFI_STATUS tee_read_device_state_tpm2(UINT8 *state)
+EFI_STATUS read_device_state_tpm2(UINT8 *state)
 {
 	struct tpm2_int_req *req = (struct tpm2_int_req *)AllocateZeroPool(sizeof(struct tpm2_int_req) + sizeof(state));
 	if (!req)
@@ -895,7 +898,7 @@ EFI_STATUS tee_read_device_state_tpm2(UINT8 *state)
 	return ret;
 }
 
-EFI_STATUS tee_write_device_state_tpm2(UINT8 state)
+EFI_STATUS write_device_state_tpm2(UINT8 state)
 {
 	struct tpm2_int_req *req = (struct tpm2_int_req *)AllocateZeroPool(sizeof(struct tpm2_int_req) + sizeof(state));
 	if (!req)
@@ -912,7 +915,7 @@ EFI_STATUS tee_write_device_state_tpm2(UINT8 state)
 	return ret;
 }
 
-EFI_STATUS tee_read_rollback_index_tpm2(size_t rollback_index_slot, uint64_t *out_rollback_index)
+EFI_STATUS read_rollback_index_tpm2(size_t rollback_index_slot, uint64_t *out_rollback_index)
 {
 	uint32_t payload_len = sizeof(rollback_index_slot) + sizeof(*out_rollback_index);
 	struct tpm2_int_req *req = (struct tpm2_int_req *)AllocateZeroPool(sizeof(struct tpm2_int_req) + payload_len);
@@ -933,7 +936,7 @@ EFI_STATUS tee_read_rollback_index_tpm2(size_t rollback_index_slot, uint64_t *ou
 	return ret;
 }
 
-EFI_STATUS tee_write_rollback_index_tpm2(size_t rollback_index_slot, uint64_t rollback_index)
+EFI_STATUS write_rollback_index_tpm2(size_t rollback_index_slot, uint64_t rollback_index)
 {
 	uint32_t payload_len = sizeof(rollback_index_slot) + sizeof(rollback_index);
 	struct tpm2_int_req *req = (struct tpm2_int_req *)AllocateZeroPool(sizeof(struct tpm2_int_req) + payload_len);
@@ -952,7 +955,7 @@ EFI_STATUS tee_write_rollback_index_tpm2(size_t rollback_index_slot, uint64_t ro
 	return ret;
 }
 
-BOOLEAN tee_tpm2_bootloader_need_init(void)
+BOOLEAN tpm2_bootloader_need_init(void)
 {
 	struct tpm2_int_req req = {0};
 	req.cmd = TEE_TPM2_BOOTLOADER_NEED_INIT;
@@ -962,19 +965,19 @@ BOOLEAN tee_tpm2_bootloader_need_init(void)
 }
 
 #ifndef USER
-EFI_STATUS tee_tpm2_show_index(__attribute__((unused)) UINT32 index, __attribute__((unused)) uint8_t *out_buffer, __attribute__((unused)) UINTN out_buffer_size)
+EFI_STATUS tpm2_show_index(__attribute__((unused)) UINT32 index, __attribute__((unused)) uint8_t *out_buffer, __attribute__((unused)) UINTN out_buffer_size)
 {
 	return EFI_UNSUPPORTED;
 }
 
-EFI_STATUS tee_tpm2_delete_index(__attribute__((unused)) UINT32 index)
+EFI_STATUS tpm2_delete_index(__attribute__((unused)) UINT32 index)
 {
 	return EFI_UNSUPPORTED;
 }
 
 #endif	// USER
 
-EFI_STATUS tee_tpm2_fuse_lock_owner(void)
+EFI_STATUS tpm2_fuse_lock_owner(void)
 {
 	struct tpm2_int_req req = {0};
 	req.cmd = TEE_TPM2_FUSE_LOCK_OWNER;
@@ -983,7 +986,10 @@ EFI_STATUS tee_tpm2_fuse_lock_owner(void)
 	return req.ret;
 }
 
-EFI_STATUS tee_tpm2_fuse_provision_seed(void)
+EFI_STATUS tpm2_fuse_provision_seed(void)
 {
 	return EFI_UNSUPPORTED;
 }
+
+
+#endif //USE_IVSHMEM
