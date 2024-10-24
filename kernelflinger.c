@@ -1212,13 +1212,15 @@ static EFI_STATUS load_image(VOID *bootimage, VOID *vendorbootimage, UINT8 boot_
 		efi_perror(ret, L"Failed to set os secure boot");
 #endif
 
-	if (tee_tpm && is_bootimg_target(boot_target)) {
+#ifdef USE_IVSHMEM
+	if (is_bootimg_target(boot_target)) {
 		ret = ivsh_send_rot_data(bootimage, boot_state, vb_data);
 		if (EFI_ERROR(ret)) {
 			debug(L"Unable to send the root of trust data to optee");
 			die();
 		}
 	}
+#endif
 
 	/* install acpi tables before starting trusty */
 	ret = setup_acpi_table(bootimage, boot_target);
