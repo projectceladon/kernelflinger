@@ -475,13 +475,16 @@ EFI_STATUS ivshmem_init(void)
 			error(L"IVSHMEM device: bar2 size too small");
 			return EFI_BUFFER_TOO_SMALL;
 		}
+		smc_vm_ids = (struct optee_vm_ids *)((UINT64)(g_ivshmem_dev.bar2_addr));
 
 		g_ivshmem_rot_addr = g_ivshmem_dev.bar2_addr + IVSHMEM_ROT_OFFSET;
 		info(L"IVSHMEM device: rot_addr=0x%lx", g_ivshmem_rot_addr);
 
 		if (g_ivshmem_dev.revision == 1) {
-			info(L"IVSHMEM device: ivposition=%d",
-			  io_read_32((void *)((UINT64)(g_ivshmem_dev.bar0_addr + IVPOSITION_OFF))));
+			smc_vm_ids->ree_id =
+				io_read_32((void *)((UINT64)(g_ivshmem_dev.bar0_addr + IVPOSITION_OFF)));
+			info(L"IVSHMEM device: ree_id=%d, tee_id=%d", smc_vm_ids->ree_id,
+				smc_vm_ids->tee_id);
 		}
 	}
 
