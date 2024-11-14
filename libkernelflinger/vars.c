@@ -329,8 +329,13 @@ enum device_state get_current_state(void)
 
 		/* If we can't read the state, be safe and assume locked. */
 		if (EFI_ERROR(ret)) {
+#ifdef USER
 			current_state = LOCKED;
-			efi_perror(ret, L"Read device state failed, assuming locked");
+			efi_perror(ret, L"Read device state failed, assuming locked in user build");
+#else
+			current_state = UNLOCKED;
+			efi_perror(ret, L"Read device state failed, assuming unlocked in userdebug build");
+#endif
 			goto exit;
 		}
 
