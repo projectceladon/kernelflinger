@@ -347,6 +347,9 @@ EFI_STATUS fill_with(EFI_BLOCK_IO *bio, EFI_LBA start, EFI_LBA end,
 	if (end <= start)
 		return EFI_INVALID_PARAMETER;
 
+	if (bio->Media->BlockSize == 0)
+		return EFI_INVALID_PARAMETER;
+
 	total = end - start +1;
 	info_n(L"Erasing ");
 	print_sec = boottime_in_msec() / 1000;
@@ -357,7 +360,8 @@ EFI_STATUS fill_with(EFI_BLOCK_IO *bio, EFI_LBA start, EFI_LBA end,
 		else
 			size = pattern_blocks;
 
-		ret = uefi_call_wrapper(bio->WriteBlocks, 5, bio, bio->Media->MediaId, lba,
+		ret = uefi_call_wrapper(bio->WriteBlocks, 5, bio, bio->Media->MediaId,
+				vm_offset / bio->Media->BlockSize + lba,
 				bio->Media->BlockSize * size, pattern);
 		if (EFI_ERROR(ret)) {
 			efi_perror(ret, L"Failed to erase block %ld", lba);
