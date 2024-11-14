@@ -51,9 +51,7 @@
 #include "text_parser.h"
 #include "libavb/libavb.h"
 #include "libavb_user/uefi_avb_ops.h"
-#ifdef USE_TPM
 #include "tpm2_security.h"
-#endif
 #include "security.h"
 #include "vars.h"
 #include "security_interface.h"
@@ -63,9 +61,7 @@
 #define SLOT_FALLBACK		"slot-fallback"
 
 static cmdlist_t cmdlist;
-#ifdef USE_TPM
 static cmdlist_t cmdlist_fuse;
-#endif
 
 static EFI_STATUS fastboot_oem_publish(void)
 {
@@ -443,10 +439,12 @@ static void cmd_oem_set_storage(INTN argc, CHAR8 **argv)
 
 	set_device_security_info(NULL);
 
-#ifdef USE_TPM
-	if (!is_live_boot())
-		tpm2_init();
-#endif
+	if (!is_live_boot() && (tee_tpm || andr_tpm)) {
+		if (tee_tpm)
+			tee_tpm2_init();
+		else if (andr_tpm)
+			tpm2_init();
+	}
 
 	ret = gpt_refresh();
 	if (EFI_ERROR(ret)) {
@@ -622,7 +620,6 @@ static void cmd_oem(INTN argc, CHAR8 **argv)
 	fastboot_run_cmd(cmdlist, (char *)argv[1], argc - 1, argv + 1);
 }
 
-#ifdef USE_TPM
 #ifndef USER
 static void cmd_oem_tpm_show_index(INTN argc, __attribute__((__unused__)) CHAR8 **argv)
 {
@@ -753,8 +750,6 @@ static void cmd_fuse_tpm2_provision_trusty_seed(INTN argc, __attribute__((__unus
 	fastboot_okay("");
 }
 
-#endif
-
 static CHAR16 *saved_vm_label;
 static void cmd_oem_set_vm(INTN argc, CHAR8 **argv)
 {
@@ -814,23 +809,19 @@ static struct fastboot_cmd COMMANDS[] = {
 	{ "get-provisioning-logs",	LOCKED,		cmd_oem_get_logs },
 	{ "setvm",			LOCKED,		cmd_oem_set_vm },
 	{ "unsetvm",			LOCKED,		cmd_oem_unset_vm },
-#ifdef USE_TPM
 #ifndef USER
 	{ "tpm-show-index",		LOCKED,		cmd_oem_tpm_show_index },
 	{ "tpm-delete-index",		LOCKED,		cmd_oem_tpm_delete_index },
 #endif // USER
 	{ "fuse",			LOCKED,		cmd_fuse }
-#endif
 };
 
-#ifdef USE_TPM
 static struct fastboot_cmd COMMANDS_FUSE[] = {
 	{ "vbmeta-key-hash",		UNLOCKED,	cmd_fuse_vbmeta_key_hash },
 	{ "bootloader-policy",		UNLOCKED,	cmd_fuse_bootloader_policy },
 	{ "lock-tpm2-owner",		UNLOCKED,	cmd_fuse_tpm2_lock_owner },
 	{ "provision-trusty-seed",	UNLOCKED,	cmd_fuse_tpm2_provision_trusty_seed }
 };
-#endif
 
 static struct fastboot_cmd oem = { "oem", LOCKED, cmd_oem };
 
@@ -849,13 +840,13 @@ EFI_STATUS fastboot_oem_init(void)
 			return ret;
 	}
 
-#ifdef USE_TPM
-	for (i = 0; i < ARRAY_SIZE(COMMANDS_FUSE); i++) {
-		ret = fastboot_register_into(&cmdlist_fuse, &COMMANDS_FUSE[i]);
-		if (EFI_ERROR(ret))
-			return ret;
+	if (andr_tpm) {
+		for (i = 0; i < ARRAY_SIZE(COMMANDS_FUSE); i++) {
+			ret = fastboot_register_into(&cmdlist_fuse, &COMMANDS_FUSE[i]);
+			if (EFI_ERROR(ret))
+				return ret;
+		}
 	}
-#endif
 
 	fastboot_register(&oem);
 
@@ -865,9 +856,7 @@ EFI_STATUS fastboot_oem_init(void)
 void fastboot_oem_free(void)
 {
 	fastboot_cmdlist_unregister(&cmdlist);
-
-#ifdef USE_TPM
-	fastboot_cmdlist_unregister(&cmdlist_fuse);
-#endif
+	if (andr_tpm)
+		fastboot_cmdlist_unregister(&cmdlist_fuse);
 
 }

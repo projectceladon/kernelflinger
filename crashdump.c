@@ -39,6 +39,9 @@
 #include "security_interface.h"
 #include "crashdump.h"
 
+BOOLEAN tee_tpm = 0;
+BOOLEAN andr_tpm = 0;
+
 static struct gpt_partition_interface gparti;
 static UINT64 cur_offset;
 
