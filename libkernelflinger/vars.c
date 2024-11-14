@@ -41,9 +41,7 @@
 #include "life_cycle.h"
 #include "storage.h"
 #include "security.h"
-#ifdef USE_TPM
 #include "tpm2_security.h"
-#endif
 
 #define OFF_MODE_CHARGE		L"off-mode-charge"
 #define OEM_LOCK		L"OEMLock"
@@ -295,11 +293,14 @@ enum device_state get_current_state(void)
 			current_state = UNLOCKED;
 			goto exit;
 		}
-#ifdef USE_TPM
-		ret = read_device_state_tpm2(&stored_state);
-#else
-		ret = read_device_state_efi(&stored_state);
-#endif
+
+		if (tee_tpm)
+			ret = tee_read_device_state_tpm2(&stored_state);
+		else if (andr_tpm)
+			ret = read_device_state_tpm2(&stored_state);
+		else
+			ret = read_device_state_efi(&stored_state);
+
 		if (ret == EFI_NOT_FOUND && !is_boot_device_virtual()) {
 			set_provisioning_mode(FALSE);
 
@@ -362,11 +363,12 @@ EFI_STATUS set_current_state(enum device_state state)
 	}
 
 	if (!is_live_boot()) {
-#ifdef USE_TPM
-		ret = write_device_state_tpm2(stored_state);
-#else
-		ret = write_device_state_efi(stored_state);
-#endif
+		if (tee_tpm)
+			ret = tee_write_device_state_tpm2(stored_state);
+		else if (andr_tpm)
+			ret = write_device_state_tpm2(stored_state);
+		else
+			ret = write_device_state_efi(stored_state);
 	}
 	if (EFI_ERROR(ret)) {
 		efi_perror(ret, L"Failed to set device state to %d", stored_state);
@@ -388,28 +390,28 @@ EFI_STATUS refresh_current_state(void)
 
 BOOLEAN device_need_locked(void)
 {
-#ifndef USE_TPM
 	UINT8 stored_state;
 	EFI_STATUS ret = EFI_SUCCESS;
-#endif
 
 	if (is_live_boot())
 		return FALSE;
 
-#ifdef USE_TPM
-	return tpm2_bootloader_need_init();
-#else
+	if (tee_tpm)
+		return tee_tpm2_bootloader_need_init();
+	if (andr_tpm)
+		return tpm2_bootloader_need_init();
+	else {
 
-	ret = read_device_state_efi(&stored_state);
-	if (EFI_NOT_FOUND == ret)
-		return TRUE;
+		ret = read_device_state_efi(&stored_state);
+		if (EFI_NOT_FOUND == ret)
+			return TRUE;
 
-	if (EFI_ERROR(ret)) {
-		efi_perror(ret, L"Read device state failed, assuming locked");
+		if (EFI_ERROR(ret)) {
+			efi_perror(ret, L"Read device state failed, assuming locked");
+		}
+
+		return FALSE;
 	}
-
-	return FALSE;
-#endif
 }
 
 #ifndef USER

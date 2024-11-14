@@ -34,9 +34,7 @@
 #include "storage.h"
 #include "security_efi.h"
 #include "protocol/BootloaderSeedProtocol.h"
-#ifdef USE_TPM
 #include "tpm2_security.h"
-#endif
 
 #define BOOTLOADER_SEED_MAX_ENTRIES  10
 
@@ -197,7 +195,6 @@ static EFI_STATUS bls_get_seed(VOID *seed)
 	return ret;
 }
 
-#ifdef USE_TPM
 static EFI_STATUS tpm2_get_seed(VOID *seed)
 {
 	EFI_STATUS ret = EFI_SUCCESS;
@@ -214,7 +211,6 @@ static EFI_STATUS tpm2_get_seed(VOID *seed)
 
 	return ret;
 }
-#endif
 
 EFI_STATUS get_seed(OUT VOID *seed)
 {
@@ -225,11 +221,10 @@ EFI_STATUS get_seed(OUT VOID *seed)
 
 	memset_s(seed, SECURITY_EFI_TRUSTY_SEED_LEN, 0, SECURITY_EFI_TRUSTY_SEED_LEN);
 
-#ifdef USE_TPM
-	ret = tpm2_get_seed(seed);
-#else
-	ret = bls_get_seed(seed);
-#endif
+	if (andr_tpm)
+		ret = tpm2_get_seed(seed);
+	else
+		ret = bls_get_seed(seed);
 
 	if (EFI_ERROR(ret)) {
 		efi_perror(ret, L"Failed to read trusty seed");

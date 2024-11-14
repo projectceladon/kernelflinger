@@ -38,14 +38,14 @@
 #include <lib.h>
 
 #define TRUSTY_SEED_SIZE		32
+extern BOOLEAN tee_tpm;
+extern BOOLEAN andr_tpm;
 
 EFI_STATUS tpm2_init(void);
 EFI_STATUS tpm2_end(void);
 
-#ifndef USE_IVSHMEM
 EFI_STATUS tpm2_fuse_trusty_seed(void);
 EFI_STATUS tpm2_read_trusty_seed(UINT8 seed[TRUSTY_SEED_SIZE]);
-#endif
 
 EFI_STATUS tpm2_fuse_perm_attr(void *data, uint32_t size);
 
@@ -66,4 +66,22 @@ EFI_STATUS tpm2_delete_index(UINT32 index);
 
 EFI_STATUS tpm2_fuse_lock_owner(void);
 EFI_STATUS tpm2_fuse_provision_seed(void);
+
+EFI_STATUS tee_tpm2_init(void);
+EFI_STATUS tee_tpm2_end(void);
+
+EFI_STATUS tee_read_device_state_tpm2(UINT8 *state);
+EFI_STATUS tee_write_device_state_tpm2(UINT8 state);
+EFI_STATUS tee_read_rollback_index_tpm2(size_t rollback_index_slot, uint64_t *out_rollback_index);
+EFI_STATUS tee_write_rollback_index_tpm2(size_t rollback_index_slot, uint64_t rollback_index);
+BOOLEAN tee_tpm2_bootloader_need_init(void);
+
+#ifndef USER
+EFI_STATUS tee_tpm2_show_index(UINT32 index, uint8_t *out_buffer, UINTN out_buffer_size);
+EFI_STATUS tee_tpm2_delete_index(UINT32 index);
+#endif
+
+EFI_STATUS tee_tpm2_fuse_lock_owner(void);
+EFI_STATUS tee_tpm2_fuse_provision_seed(void);
+
 #endif /* _TPM2_SECURITY_H_ */
