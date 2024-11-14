@@ -932,6 +932,7 @@ EFI_STATUS read_rollback_index_tpm2(size_t rollback_index_slot, uint64_t *out_ro
 
 	FreePool(req);
 
+	debug(L"Read rollback index from TPM success, slot: %d, index: 0x%llx", rollback_index_slot, *out_rollback_index);
 	return ret;
 }
 
@@ -950,6 +951,7 @@ EFI_STATUS write_rollback_index_tpm2(size_t rollback_index_slot, uint64_t rollba
 	EFI_STATUS ret = req->ret;
 	FreePool(req);
 
+	debug(L"Write rollback index to TPM success, slot: %d, index: 0x%llx", rollback_index_slot, rollback_index);
 	return ret;
 }
 
