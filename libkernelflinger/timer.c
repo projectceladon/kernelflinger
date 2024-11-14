@@ -97,8 +97,8 @@ uint32_t get_cpu_freq(void)
 
 uint32_t boottime_in_msec(void)
 {
-	uint64_t tick;
-	uint32_t bt_us, bt_ms;
+	uint64_t tick, bt_us;
+	uint32_t bt_ms;
 	uint32_t cpu_freq;
 
 	cpu_freq = get_cpu_freq();
@@ -108,8 +108,8 @@ uint32_t boottime_in_msec(void)
 	}
 
 	tick = __RDTSC();
-	bt_us = (((unsigned) (tick >> 6)) / cpu_freq) << 6;
-	bt_ms = bt_us / 1000;
+	bt_us = tick / cpu_freq;
+	bt_ms = (uint32_t)(bt_us / 1000);
 
 	return bt_ms;
 }
