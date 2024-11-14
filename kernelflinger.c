@@ -1496,7 +1496,9 @@ EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table)
 	VOID *bootimage = NULL;
 	BOOLEAN oneshot = FALSE;
 	BOOLEAN lock_prompted = FALSE;
+#ifndef USE_SBL
 	BOOLEAN need_lock;
+#endif
 	enum boot_target boot_target = NORMAL_BOOT;
 	UINT8 boot_state = BOOT_STATE_GREEN;
 	VBDATA *vb_data = NULL;
@@ -1611,6 +1613,7 @@ EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table)
 		}
 	}
 
+#ifndef USE_SBL
 	need_lock = device_need_locked();
 
 #ifndef USER
@@ -1623,6 +1626,7 @@ EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table)
 	*/
 	if (need_lock)
 		set_current_state(LOCKED);
+#endif
 #endif
 
 	if (boot_target == POWER_OFF)
