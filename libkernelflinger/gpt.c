@@ -401,13 +401,6 @@ static CHAR16 *make_android_label(const CHAR16 *label)
 	return (ret == EFI_SUCCESS) ? (android_label) : (NULL);
 }
 
-void log_uid(EFI_GUID *uid)
-{
-	CHAR16 outString[100];
-	GuidToString (outString, uid);
-	debug(L"UID: %s ", outString);
-}
-
 static struct gpt_partition *gpt_find_partition(const CHAR16 *label)
 {
 	UINTN p;
@@ -424,10 +417,8 @@ static struct gpt_partition *gpt_find_partition(const CHAR16 *label)
 
 		if (StrCmp(part->name, label) &&
 		    (!android_label || StrCmp(part->name, android_label))) {
-				debug(L"label %s in partition %d", part->name, p);
-				log_uid(&part->unique);
 			continue;
-			}
+		}
 
 		debug(L"Found label %s in partition %d", label, p);
 		return part;
