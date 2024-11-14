@@ -16,9 +16,7 @@ SHARED_STATIC_LIBRARIES := \
 	libkernelflinger-$(TARGET_BUILD_VARIANT) \
 	libavb_kernelflinger-$(TARGET_BUILD_VARIANT)
 
-ifeq ($(TARGET_USE_TPM),true)
-    SHARED_STATIC_LIBRARIES += libedk2_tpm
-endif
+SHARED_STATIC_LIBRARIES += libedk2_tpm
 
 SHARED_SRC_FILES := \
 	fastboot.c \

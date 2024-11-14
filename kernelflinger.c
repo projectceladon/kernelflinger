@@ -69,11 +69,15 @@
 #include "uefi_utils.h"
 #include "security_interface.h"
 #include "security_efi.h"
-#ifdef USE_TPM
 #include "tpm2_security.h"
-#endif
-#ifdef USE_IVSHMEM
 #include "ivshmem.h"
+
+BOOLEAN tee_tpm = false;
+
+#ifdef USE_TPM
+BOOLEAN andr_tpm = true;
+#else
+BOOLEAN andr_tpm = false;
 #endif
 
 /* Ensure this is embedded in the EFI binary somewhere */
@@ -537,6 +541,8 @@ static enum boot_target check_command_line()
 		FIRMWARE_BOOTTIME,
 		BOOTREASON,
 		FIRMWARE_STATUS,
+		OPTEE,
+		TPM
 	};
 
 	struct Cmdline
@@ -592,6 +598,17 @@ static enum boot_target check_command_line()
 			strlen((CHAR8 *)"fw.status="),
 			FIRMWARE_STATUS
 		},
+		{
+			(CHAR8 *)"tee=",
+			strlen((CHAR8 *)"tee="),
+			OPTEE
+		},
+		{
+			(CHAR8 *)"tpm=",
+			strlen((CHAR8 *)"tpm="),
+			TPM
+		},
+
 	};
 
 	CHAR8 *nptr = NULL;
@@ -711,7 +728,29 @@ static enum boot_target check_command_line()
 				/* Parse "androidboot.bootreason=xxxxx " */
 				case BOOTREASON:
 					continue;
+				case OPTEE: {
+					UINT8 val;
+					nptr = (CHAR8 *)(arg8 + CmdlineArray[j].length);
+					val = (UINT8)strtoul((char *)nptr, 0, 10);
 
+					debug(L"optee TPM = %u\n", val);
+					if (val)
+						tee_tpm = true;
+					else
+						tee_tpm = false;
+					continue;
+				}
+				case TPM: {
+					UINT8 val;
+					nptr = (CHAR8 *)(arg8 + CmdlineArray[j].length);
+					val = (UINT8)strtoul((char *)nptr, 0, 10);
+					debug(L"Android TPM = %u\n", val);
+					if (val)
+						andr_tpm = true;
+					else
+						andr_tpm = false;
+					continue;
+				}
 				default:
 					continue;
 				}
@@ -1230,10 +1269,11 @@ static EFI_STATUS load_image(VOID *bootimage, VOID *vendorbootimage, UINT8 boot_
 	}
 #endif
 
-#ifdef USE_TPM
 	// Make sure the TPM2 is ended
-	tpm2_end();
-#endif
+	if (tee_tpm)
+		tee_tpm2_end();
+	else if (andr_tpm)
+		tpm2_end();
 
 	debug(L"chainloading boot image, boot state is %s",
 			boot_state_to_string(boot_state));
@@ -1508,38 +1548,6 @@ EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table)
 	uefi_check_upgrade(g_loaded_image, BOOTLOADER_LABEL, KFUPDATE_FILE,
 			BOOTLOADER_FILE, BOOTLOADER_FILE_BAK, KFSELF_FILE, KFBACKUP_FILE);
 
-#ifdef USE_IVSHMEM
-	ret = ivshmem_init();
-	if (EFI_ERROR(ret) && ret != EFI_NOT_FOUND) {
-		efi_perror(ret, L"Failed to init ivshmem, enter fastboot mode");
-		boot_target = FASTBOOT;
-	}
-#endif
-
-#ifdef USE_TPM
-	if (!is_live_boot()) {
-		ret = tpm2_init();
-		if (EFI_ERROR(ret) && ret != EFI_NOT_FOUND) {
-			efi_perror(ret, L"Failed to init TPM, enter fastboot mode");
-			boot_target = FASTBOOT;
-		}
-	}
-#endif
-
-	need_lock = device_need_locked();
-
-#ifndef USER
-	/* WA patch to set device as unlocked by default for userdebug build
-	 */
-	set_current_state(UNLOCKED);
-#else
-	/* For civ, flash images to disk is not MUST. So set device to LOCKED
-	 * state by default on the first boot.
-	*/
-	if (need_lock)
-		set_current_state(LOCKED);
-#endif
-
 	ret = set_device_security_info(NULL);
 	if (EFI_ERROR(ret)) {
 		efi_perror(ret, L"Failed to init security info, enter fastboot mode");
@@ -1584,6 +1592,40 @@ EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table)
 		reboot_to_target(FASTBOOT, EfiResetCold);
 #endif
 	}
+
+	if (tee_tpm) {
+		debug(L"tee tpm enable, ivshmem_init#############");
+		ret = ivshmem_init();
+		if (EFI_ERROR(ret) && ret != EFI_NOT_FOUND) {
+			efi_perror(ret, L"Failed to init ivshmem, enter fastboot mode");
+			boot_target = FASTBOOT;
+		}
+	}
+
+	if (!is_live_boot() && (tee_tpm || andr_tpm)) {
+		if (tee_tpm)
+			ret = tee_tpm2_init();
+		else if (andr_tpm)
+			ret = tpm2_init();
+		if (EFI_ERROR(ret) && ret != EFI_NOT_FOUND) {
+			efi_perror(ret, L"Failed to init TPM, enter fastboot mode");
+			boot_target = FASTBOOT;
+		}
+	}
+
+	need_lock = device_need_locked();
+
+#ifndef USER
+	/* WA patch to set device as unlocked by default for userdebug build
+	 */
+	set_current_state(UNLOCKED);
+#else
+	/* For civ, flash images to disk is not MUST. So set device to LOCKED
+	 * state by default on the first boot.
+	*/
+	if (need_lock)
+		set_current_state(LOCKED);
+#endif
 
 	if (boot_target == POWER_OFF)
 		halt_system();

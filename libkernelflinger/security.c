@@ -48,11 +48,9 @@
 #include "life_cycle.h"
 #include "uefi_utils.h"
 
-#ifdef USE_IVSHMEM
 #include "ivshmem.h"
 
 extern UINT64 g_ivshmem_rot_addr;
-#endif
 
 /* OsSecureBoot is *not* a standard EFI_GLOBAL variable
  *
@@ -200,7 +198,6 @@ EFI_STATUS update_rot_data(IN VOID *bootimage, IN UINT8 boot_state,
         return ret;
 }
 
-#ifdef USE_IVSHMEM
 EFI_STATUS ivsh_send_rot_data(IN VOID *bootimage, IN UINT8 boot_state,
                         IN VBDATA *vb_data)
 {
@@ -223,7 +220,6 @@ EFI_STATUS ivsh_send_rot_data(IN VOID *bootimage, IN UINT8 boot_state,
 
     return ret;
 }
-#endif
 
 /* initialize the struct rot_data for startup_information */
 EFI_STATUS init_rot_data(UINT32 boot_state)
