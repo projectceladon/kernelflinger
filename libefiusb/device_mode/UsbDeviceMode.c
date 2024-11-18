@@ -1268,11 +1268,15 @@ EFI_STATUS
 EFIAPI
 UsbDeviceRun (
   IN EFI_USB_DEVICE_MODE_PROTOCOL               *This,
-  IN UINT32                                     TimeoutMs
+  IN UINT32                                     TimeoutMs,
+  IN UINT32                                     *state
   )
 {
   EFI_STATUS              Status = EFI_DEVICE_ERROR;
   USB_XDCI_DEV_CONTEXT    *XdciDevContext;
+
+  if (state)
+    *state = 1;
 
   XdciDevContext = USBUSBD_CONTEXT_FROM_PROTOCOL (This);
 
