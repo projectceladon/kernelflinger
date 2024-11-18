@@ -1229,12 +1229,15 @@ EFI_STATUS installer_transport_stop(void)
 	return EFI_SUCCESS;
 }
 
-EFI_STATUS installer_transport_run(void)
+EFI_STATUS installer_transport_run(UINT32 *state)
 {
 	static BOOLEAN initialized = FALSE;
 	EFI_STATUS ret;
 	char *cmd;
 	UINTN cmd_len;
+
+	if (state)
+		*state = 1;
 
 	if (!initialized) {
 		ret = installer_replace_functions();
