@@ -45,7 +45,8 @@ enum TM_POINT {
 	TM_POINT_LAST
 };
 
-uint32_t get_cpu_freq(void);
+uint32_t get_cpu_freq(void); /* cpu freq, mhz */
+uint32_t get_tsc_mhz(void);  /* tsc hz, mhz*/
 uint64_t rdtsc(void);
 uint32_t boottime_in_msec(void);
 void set_boottime_stamp(int num);
