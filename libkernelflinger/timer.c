@@ -82,6 +82,7 @@ uint64_t rdtsc(void) {
 	return __RDTSC();
 }
 
+/* return mhz */
 uint32_t get_cpu_freq(void)
 {
 	uint32_t cpu_freq;
@@ -95,20 +96,33 @@ uint32_t get_cpu_freq(void)
 	return cpu_freq;
 }
 
+uint32_t get_tsc_mhz(void)
+{
+	uint32_t tsc_mhz = 0;
+	uint32_t reg[4] = {0};
+
+	cpuid(0x15, reg);
+	if (reg[0] && reg[1] && reg[2]) {
+		tsc_mhz = (uint32_t)(((uint64_t)reg[2] * reg[1] / reg[0] / 1000000));
+	}
+
+	return tsc_mhz;
+}
+
 uint32_t boottime_in_msec(void)
 {
 	uint64_t tick, bt_us;
 	uint32_t bt_ms;
-	uint32_t cpu_freq;
+	uint32_t tsc_mhz;
 
-	cpu_freq = get_cpu_freq();
-	if (cpu_freq == 0) {
+	tsc_mhz = get_tsc_mhz();
+	if (tsc_mhz == 0) {
 		 time_stamp = FALSE;
 		 return 0;
 	}
 
 	tick = __RDTSC();
-	bt_us = tick / cpu_freq;
+	bt_us = tick / tsc_mhz;
 	bt_ms = (uint32_t)(bt_us / 1000);
 
 	return bt_ms;
