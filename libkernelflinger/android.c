@@ -1340,9 +1340,11 @@ static EFI_STATUS setup_command_line(
 #ifdef USE_SBL
 	const char *cmd_for_kernel = NULL;
 	char *tmp = NULL;
+	const char *sbl_bootreason = NULL;
+	CHAR16 *f_bootreason = NULL;
 	UINT64 tick, bt_us;
 	UINT32 bt_ms;
-	UINT32 cpu_freq;
+	UINT32 tsc_mhz;
 #endif
 
 	is_uefi = is_UEFI();
@@ -1389,7 +1391,13 @@ static EFI_STATUS setup_command_line(
 	else
 		bootreason = get_reboot_reason();
 #else
-	bootreason = get_sbl_boot_reason();
+	sbl_bootreason = ewarg_getval("reset");
+	if (!sbl_bootreason)
+		bootreason = L"unknown";
+	else {
+		bootreason = stra_to_str((CHAR8 *)sbl_bootreason);
+		f_bootreason = bootreason;
+	}
 #endif
 
 	if (!bootreason) {
@@ -1554,16 +1562,25 @@ static EFI_STATUS setup_command_line(
 	/* append stages boottime */
 	set_boottime_stamp(TM_JMP_KERNEL);
 #ifdef USE_SBL
-	cpu_freq = get_cpu_freq();
-	if (cpu_freq != 0) {
+	tsc_mhz = get_tsc_mhz();
+	if (tsc_mhz == 0)
+		tsc_mhz = get_cpu_freq();
+	if (tsc_mhz != 0) {
 		tick = efiwrapper_tsc();
-		bt_us = tick  / cpu_freq;
+		bt_us = tick  / tsc_mhz;
 		bt_ms = (UINT32)(bt_us / 1000);
 
 		debug(L"efiwarrper start time: %u ms\n", bt_ms);
-		debug(L"cpu_freq: %u Mhz\n", cpu_freq);
+		debug(L"tsc hz: %u Mhz\n", tsc_mhz);
 		debug(L"KF resume time: %u ms", boottime_in_msec() - bt_ms);
 		set_efi_enter_point(bt_ms);
+
+		ret = prepend_command_line(&cmdline16, L"androidboot.kf_start_tsc=%llu", tick);
+		if (EFI_ERROR(ret))
+			goto out;
+		ret = prepend_command_line(&cmdline16, L"androidboot.tsc_mhz=%uMhz", tsc_mhz);
+		if (EFI_ERROR(ret))
+			goto out;
 	}
 #endif
 
@@ -1706,6 +1723,10 @@ out:
 			FreePool((void *)(UINTN)cmdline_addr);
 		}
 	}
+#ifdef USE_SBL
+	if (f_bootreason)
+		free_pool(f_bootreason);
+#endif
 	return ret;
 }
 
