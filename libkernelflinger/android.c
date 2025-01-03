@@ -1340,6 +1340,8 @@ static EFI_STATUS setup_command_line(
 #ifdef USE_SBL
 	const char *cmd_for_kernel = NULL;
 	char *tmp = NULL;
+	const char *sbl_bootreason = NULL;
+	CHAR16 *f_bootreason = NULL;
 	UINT64 tick, bt_us;
 	UINT32 bt_ms;
 	UINT32 tsc_mhz;
@@ -1389,7 +1391,13 @@ static EFI_STATUS setup_command_line(
 	else
 		bootreason = get_reboot_reason();
 #else
-	bootreason = get_sbl_boot_reason();
+	sbl_bootreason = ewarg_getval("reset");
+	if (!sbl_bootreason)
+		bootreason = L"unknown";
+	else {
+		bootreason = stra_to_str((CHAR8 *)sbl_bootreason);
+		f_bootreason = bootreason;
+	}
 #endif
 
 	if (!bootreason) {
@@ -1715,6 +1723,10 @@ out:
 			FreePool((void *)(UINTN)cmdline_addr);
 		}
 	}
+#ifdef USE_SBL
+	if (f_bootreason)
+		free_pool(f_bootreason);
+#endif
 	return ret;
 }
 

@@ -532,7 +532,7 @@ int64_t time(int64_t *timer)
 	__attribute__((weak));
 int64_t time(int64_t *timer)
 {
-	EFI_TIME  Time;
+	EFI_TIME  Time = {0};
 	UINTN     Year;
 
 	/* Defaultly set timezone as EFI_UNSPECIFIED_TIMEZONE */
