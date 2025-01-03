@@ -900,18 +900,6 @@ bad:
 }
 
 #ifdef USE_SBL
-CHAR16 *get_sbl_boot_reason(){
-	const char *reason;
-	CHAR16 *ret;
-
-	reason = ewarg_getval(SBL_RESET_REASON);
-	if (!reason)
-		return L"unknown";
-	//convert to CHAR16
-	ret = stra_to_str((CHAR8 *)reason);
-	return ret;
-}
-
 const char *get_cmd_for_kernel(){
     return ewarg_getval(CMD_FOR_KERNEL);
 }
@@ -1009,6 +997,7 @@ EFI_STATUS read_efi_rollback_index(UINTN rollback_index_slot, uint64_t* out_roll
 	}
 
 	*out_rollback_index = *(uint64_t *)data;
+	FreePool(data);
 
 	return EFI_SUCCESS;
 }

@@ -528,7 +528,7 @@ EFI_STATUS get_logical_block_size(UINTN *logical_blk_size)
 EFI_STATUS storage_get_erase_block_size(UINTN *erase_blk_size)
 {
 	EFI_STATUS ret;
-	EFI_HANDLE *handles;
+	EFI_HANDLE *handles = NULL;
 	UINTN nb_handle = 0;
 	UINTN i;
 	EFI_DEVICE_PATH *device_path = NULL;
@@ -556,6 +556,8 @@ EFI_STATUS storage_get_erase_block_size(UINTN *erase_blk_size)
 	}
 
 notfound:
+	if (handles)
+		FreePool(handles);
 	ret = gpt_get_root_disk(&gparti, LOGICAL_UNIT_USER);
 	if (EFI_ERROR(ret)) {
 		efi_perror(ret, L"Failed to get disk information");
