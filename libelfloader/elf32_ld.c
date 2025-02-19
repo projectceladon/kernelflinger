@@ -245,6 +245,11 @@ elf32_load_executable(module_file_info_t *file_info, uint64_t *p_entry)
 		return FALSE;
 	}
 
+	/* return if the number of entries in the program header table is
+              larger than or equal to PN_XNUM (0xffff) */
+	if (ehdr->e_phnum == 0xFFFF)
+		return FALSE;
+
 	/* Calculate amount of memory required. First calculate size of all
 		 * loadable segments */
 	for (i = 0; i < (uint16_t)ehdr->e_phnum; ++i) {

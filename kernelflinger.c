@@ -364,7 +364,7 @@ static enum boot_target check_watchdog(VOID)
 {
 	EFI_STATUS ret;
 	UINT8 counter;
-	EFI_TIME time_ref, now;
+	EFI_TIME time_ref =  {0}, now = {0};
 
 	if (!get_crash_event_menu())
 		return NORMAL_BOOT;
