@@ -586,6 +586,12 @@ static EFI_STATUS vmcore_read(reader_ctx_t *ctx, unsigned char **buf, UINT64 *le
 		}
 
 		priv->cur_phdr++;
+
+		// Ensure priv->cur_phdr is within bounds before using it as an index
+		if (priv->cur_phdr < 0 || priv->cur_phdr >= priv->hdr.phnum) {
+			error(L"Invalid parameter in %a: cur_phdr out of bounds", __func__);
+			return EFI_INVALID_PARAMETER;
+		}
 		priv->m.cur = priv->phdr[priv->cur_phdr].paddr;
 		priv->m.cur_end = priv->m.cur + priv->phdr[priv->cur_phdr].memsz;
 	}
