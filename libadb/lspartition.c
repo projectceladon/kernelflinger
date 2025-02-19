@@ -39,7 +39,7 @@ static EFI_STATUS lspartition_main(INTN argc,
 				   __attribute__((__unused__)) const char **argv)
 {
 	EFI_STATUS ret;
-	struct gpt_partition_interface *gparti;
+	struct gpt_partition_interface *gparti = NULL;
 	UINTN part_count, i, max_len = 0;
 	CHAR16 title_fmt[64], part_fmt[64];
 
@@ -71,6 +71,9 @@ static EFI_STATUS lspartition_main(INTN argc,
 		ss_printf(part_fmt, i + 1, gparti[i].part.name, offset,
 			  size / (1024 * 1024));
 	}
+
+	if (gparti)
+		FreePool(gparti);
 
 	return EFI_SUCCESS;
 }
