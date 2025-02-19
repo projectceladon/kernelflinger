@@ -121,7 +121,8 @@ static EFI_STATUS lspci_main(INTN argc, const char **argv)
 
 	memset_s(&header, sizeof(header), 0, sizeof(header));
 
-	for (i = 0, dev.raw = 0; i <= (UINT16)-1; i++, dev.raw = i) {
+	for (i = 0, dev.raw = 0; i <= (UINT16)-1; i++) {
+		dev.raw = i;
 		UINT32 val = pci_read_config32(dev, 0);
 
 		if (val == 0xffffffff || val == 0x00000000 ||

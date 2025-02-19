@@ -958,7 +958,7 @@ BOOLEAN tee_tpm2_bootloader_need_init(void)
 	req.cmd = TEE_TPM2_BOOTLOADER_NEED_INIT;
 	ivshmem_rollback_index_interrupt(&req);
 
-	return req.ret;
+	return (BOOLEAN)req.ret;
 }
 
 #ifndef USER
