@@ -1458,8 +1458,15 @@ EFI_STATUS fastboot_start(void **bootimage, void **efiimage, UINTN *imagesize,
 	UINT32 state  = 1;
 	UINT64 tsc_total, tsc_end;
 	UINT64 timeout_sec  = 300;
+	UINT32 tsc_mhz;
 
-	tsc_total = timeout_sec * get_cpu_freq() * 1000000;
+	tsc_mhz = get_tsc_mhz();
+	if (tsc_mhz == 0)
+		tsc_mhz = get_cpu_freq();
+	if (tsc_mhz == 0)
+		tsc_mhz = 2800;
+
+	tsc_total = timeout_sec * tsc_mhz * 1000000;
 	tsc_end = rdtsc() + tsc_total;
 
 	if (!bootimage || !efiimage || !imagesize || !target)
