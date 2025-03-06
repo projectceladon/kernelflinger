@@ -41,6 +41,7 @@
 
 BOOLEAN tee_tpm = 0;
 BOOLEAN andr_tpm = 0;
+BOOLEAN user_build = false;
 
 static struct gpt_partition_interface gparti;
 static UINT64 cur_offset;
