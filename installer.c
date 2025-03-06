@@ -77,6 +77,8 @@ BOOLEAN andr_tpm = true;
 BOOLEAN andr_tpm = false;
 #endif
 
+BOOLEAN user_build = false;
+
 #define inst_perror(ret, x, ...) do { \
 	fastboot_fail(x ": %r", ##__VA_ARGS__, ret); \
 } while (0)
