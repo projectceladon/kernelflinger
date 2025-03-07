@@ -78,7 +78,7 @@ static EFI_STATUS identify_storage(EFI_DEVICE_PATH *device_path,
 				   struct storage **storage,
 				   enum storage_type *type)
 {
-	enum storage_type st;
+	enum storage_type st = STORAGE_EMMC;
 	static struct storage *supported_storage[STORAGE_ALL] = {
 		&STORAGE(STORAGE_EMMC)
 		, &STORAGE(STORAGE_UFS)
@@ -92,7 +92,10 @@ static EFI_STATUS identify_storage(EFI_DEVICE_PATH *device_path,
 		, &STORAGE(STORAGE_GENERAL_BLOCK)
 	};
 
-	for (st = STORAGE_EMMC; st < STORAGE_ALL; st++) {
+#ifdef USE_SBL
+	st = STORAGE_NVME;
+#endif
+	for (; st < STORAGE_ALL; st++) {
 		if ((filter == st || filter == STORAGE_ALL) &&
 		    supported_storage[st] && supported_storage[st]->probe(device_path)) {
 			debug(L"%s storage identified", supported_storage[st]->name);
