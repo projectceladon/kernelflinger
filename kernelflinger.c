@@ -80,6 +80,8 @@ BOOLEAN andr_tpm = true;
 BOOLEAN andr_tpm = false;
 #endif
 
+BOOLEAN user_build = false;
+
 /* Ensure this is embedded in the EFI binary somewhere */
 static const CHAR16 __attribute__((used)) magic[] = L"### kernelflinger ###";
 
@@ -542,7 +544,8 @@ static enum boot_target check_command_line()
 		BOOTREASON,
 		FIRMWARE_STATUS,
 		OPTEE,
-		TPM
+		TPM,
+		USERBLD
 	};
 
 	struct Cmdline
@@ -607,6 +610,11 @@ static enum boot_target check_command_line()
 			(CHAR8 *)"tpm=",
 			strlen((CHAR8 *)"tpm="),
 			TPM
+		},
+		{
+			(CHAR8 *)"userbuild=",
+			strlen((CHAR8 *)"userbuild="),
+			USERBLD
 		},
 
 	};
@@ -751,6 +759,18 @@ static enum boot_target check_command_line()
 						andr_tpm = false;
 					continue;
 				}
+				case USERBLD: {
+					UINT8 val;
+					nptr = (CHAR8 *)(arg8 + CmdlineArray[j].length);
+					val = (UINT8)strtoul((char *)nptr, 0, 10);
+					debug(L"Android user = %u\n", val);
+					if (val)
+						user_build = true;
+					else
+						user_build = false;
+					continue;
+				}
+
 				default:
 					continue;
 				}
