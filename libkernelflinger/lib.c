@@ -1726,6 +1726,18 @@ EFI_STATUS string_to_argv(char *str, INTN *argc, CHAR8 *argv[], UINTN max_argc,
         return EFI_SUCCESS;
 }
 
+UINT8 inb(int port)
+{
+        UINT8 val;
+        __asm__ __volatile__("inb %w1, %b0" : "=a"(val) : "Nd"(port));
+        return val;
+}
+
+void outb(UINT8 val, int port)
+{
+	__asm__ __volatile__("outb %b0, %w1" : : "a"(val), "Nd"(port));
+}
+
 int is_running_on_kvm(void)
 {
     UINT32 reg[4];
@@ -1744,6 +1756,17 @@ int is_running_on_qnx(void)
 
     cpuid(0x40000000, reg);
     if (reg[0] == 0x40000002 && reg[1] == 0x51584e51 && reg[2] == 0x53424d56 && reg[3] == 0x4751)
+        return 1;
+
+    return 0;
+}
+
+int is_running_on_acrn(void)
+{
+    UINT32 reg[4];
+
+    cpuid(0x40000000, reg);
+    if (reg[1] == 0x4e524341 && reg[2] == 0x4e524341 && reg[3] == 0x4e524341)
         return 1;
 
     return 0;

@@ -861,6 +861,27 @@ static CHAR16 *get_reset_reason(void)
         return NULL;
 }
 
+static CHAR16 *get_vm_reboot_reason(void)
+{
+        CHAR16 *bootreason, *pos;
+	UINT8 reboot_code;
+
+	if (!is_running_on_acrn()) {
+		return NULL;
+	}
+
+	/* Read reboot code from 0xcf9 */
+	reboot_code = inb(0xcf9);
+
+	debug(L"cf9 value = %x", reboot_code);
+	if (reboot_code == 0x06) {
+		bootreason = L"warm";
+	} else {
+		bootreason = L"cold";
+	}
+
+	return bootreason;
+}
 
 static CHAR16 *get_boot_reason(void)
 {
@@ -1346,8 +1367,6 @@ static EFI_STATUS setup_command_line(
 #ifdef USE_SBL
 	const char *cmd_for_kernel = NULL;
 	char *tmp = NULL;
-	const char *sbl_bootreason = NULL;
-	CHAR16 *f_bootreason = NULL;
 	UINT64 tick, bt_us;
 	UINT32 bt_ms;
 	UINT32 tsc_mhz;
@@ -1391,20 +1410,15 @@ static EFI_STATUS setup_command_line(
 		if (EFI_ERROR(ret))
 			goto out;
 	}
-#ifndef USE_SBL
+
 	if (is_uefi)
 		bootreason = get_boot_reason();
-	else
-		bootreason = get_reboot_reason();
-#else
-	sbl_bootreason = ewarg_getval("reset");
-	if (!sbl_bootreason)
-		bootreason = L"unknown";
 	else {
-		bootreason = stra_to_str((CHAR8 *)sbl_bootreason);
-		f_bootreason = bootreason;
+		bootreason = get_reboot_reason();
+		if (!bootreason) {
+			bootreason = get_vm_reboot_reason();
+		}
 	}
-#endif
 
 	if (!bootreason) {
 		ret = EFI_OUT_OF_RESOURCES;
@@ -1729,10 +1743,6 @@ out:
 			FreePool((void *)(UINTN)cmdline_addr);
 		}
 	}
-#ifdef USE_SBL
-	if (f_bootreason)
-		free_pool(f_bootreason);
-#endif
 	return ret;
 }
 
