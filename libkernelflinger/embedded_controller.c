@@ -31,18 +31,6 @@ static UINT8 EC_STATUS_PORT66    = 0x66;
 static UINT8 EC_CMD_PORT66       = 0x66;
 static UINT8 EC_DATA_PORT62      = 0x62;
 
-static inline UINT8 inb(int port)
-{
-	UINT8 val;
-	__asm__ __volatile__("inb %w1, %b0" : "=a"(val) : "Nd"(port));
-	return val;
-}
-
-static inline void outb(UINT8 val, int port)
-{
-	__asm__ __volatile__("outb %b0, %w1" : : "a"(val), "Nd"(port));
-}
-
 static void ec_wait_for_ready(void)
 {
 	int retries = 100;

@@ -38,23 +38,11 @@ static const char * const usage = "Usage:\n"
 	"  inb|inw|inl IOPORT\n"
 	"  outb|outw|outl IOPORT DATA";
 
-static inline UINT8 inb(int port)
-{
-	UINT8 val;
-	__asm__ __volatile__("inb %w1, %b0" : "=a"(val) : "Nd"(port));
-	return val;
-}
-
 static inline UINT16 inw(int port)
 {
 	UINT16 val;
 	__asm__ __volatile__("inw %w1, %w0" : "=a"(val) : "Nd"(port));
 	return val;
-}
-
-static inline void outb(UINT8 val, int port)
-{
-	__asm__ __volatile__("outb %b0, %w1" : : "a"(val), "Nd"(port));
 }
 
 static inline void outw(UINT16 val, int port)
