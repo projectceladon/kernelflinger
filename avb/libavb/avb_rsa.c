@@ -78,7 +78,7 @@ static IAvbKey* iavb_parse_key_data(const uint8_t* data, size_t length) {
    */
   key = (IAvbKey*)(avb_malloc(sizeof(IAvbKey) + 2 * h.key_num_bits / 8));
   if (key == NULL) {
-    goto fail;
+    return NULL;
   }
 
   key->len = h.key_num_bits / 32;
