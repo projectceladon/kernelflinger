@@ -243,7 +243,7 @@ EFI_STATUS fat_test()
 
 UINT32 get_fattime() {
 	EFI_STATUS ret;
-	EFI_TIME now;
+	EFI_TIME now = {0};
 
 	ret = uefi_call_wrapper(RT->GetTime, 2, &now, NULL);
 	if (EFI_ERROR(ret)) {
