@@ -409,7 +409,8 @@ static EFI_STATUS hash_partition(struct gpt_partition_interface *gparti, UINT64 
 			goto free;
 		EVP_DigestUpdate(&mdctx, buffer, chunklen);
 	}
-	EVP_DigestFinal_ex(&mdctx, hash, NULL);
+	if (!EVP_DigestFinal_ex(&mdctx, hash, NULL))
+		goto free;
 
 free:
 	EVP_MD_CTX_cleanup(&mdctx);
