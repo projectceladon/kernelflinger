@@ -42,6 +42,7 @@
 #include "fastboot_ui.h"
 #include "smbios.h"
 #include "info.h"
+#include "android.h"
 
 static const ui_textline_t unlocked_headers[] = {
 	{ &COLOR_WHITE,		"        Unlock bootloader?",			TRUE },
@@ -158,7 +159,8 @@ struct info_text_fun {
 	{ "IFWI VERSION",	fastboot_ui_info_ifwi_version,	fastboot_ui_default_color },
 	{ "SERIAL NUMBER",	fastboot_ui_info_serial_number,	fastboot_ui_default_color },
 	{ "SECURE BOOT",	fastboot_ui_info_secure_boot,	fastboot_ui_info_secure_boot_color },
-	{ "LOCK STATE",		get_current_state_string,	get_current_state_color }
+	{ "LOCK STATE",		get_current_state_string,	get_current_state_color },
+	{ "BOOT REASON",	get_boot_reason_string,		fastboot_ui_default_color }
 };
 
 static const char *FASTBOOT_TITLE = "FASTBOOT MODE";

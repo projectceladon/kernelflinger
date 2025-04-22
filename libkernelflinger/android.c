@@ -917,8 +917,35 @@ static CHAR16 *get_boot_reason(void)
         }
 
 done:
+#ifndef USE_SBL
         del_reboot_reason();
+#endif
         return bootreason;
+}
+
+const char *get_boot_reason_string(void)
+{
+	CHAR16 *reason16;
+	char *reason8;
+	EFI_STATUS ret;
+	UINTN len;
+
+	reason16 = get_boot_reason();
+	if (!reason16)
+		return "unknown";
+
+	len = StrLen(reason16);
+	reason8 = AllocatePool(len + 1);
+	if (!reason8)
+		return "unknown";
+
+	ret = str_to_stra(reason8, reason16, len + 1);
+	if (EFI_ERROR(ret)) {
+		error(L"Non-ascii characters found");
+		return "unknown";
+	}
+
+	return reason8;
 }
 
 EFI_STATUS prepend_command_line(CHAR16 **cmdline, CHAR16 *fmt, ...)

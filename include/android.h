@@ -579,6 +579,7 @@ EFI_STATUS prepend_slot_command_line(CHAR16 **cmdline16,
 UINTN get_vb_cmdlen(VBDATA *vb_data);
 
 char *get_vb_cmdline(VBDATA *vb_data);
+const char *get_boot_reason_string(void);
 #endif
 
 /* vim: softtabstop=8:shiftwidth=8:expandtab

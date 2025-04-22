@@ -1591,10 +1591,6 @@ EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table)
 	reboot_to_target(NORMAL_BOOT, EfiResetCold);
 #endif
 
-#ifdef __FORCE_FASTBOOT
-	enter_fastboot_mode(boot_state);
-#endif
-
 	/* No UX prompts before this point, do not want to interfere
 	 * with magic key detection
 	 */
@@ -1698,6 +1694,9 @@ EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table)
 	boot_state = BOOT_STATE_RED;
 #endif
 
+#ifdef __FORCE_FASTBOOT
+	enter_fastboot_mode(boot_state);
+#endif
 	/* EFI binaries are validated by the BIOS */
 	if (boot_target == ESP_EFI_BINARY) {
 		debug(L"entering EFI binary");
