@@ -892,6 +892,12 @@ EFI_STATUS tee_read_device_state_tpm2(UINT8 *state)
 	*state = *(UINT8 *)(req->payload);
 
 	FreePool(req);
+	if (EFI_ERROR(ret)) {
+		efi_perror(ret, L"Read device state from TPM failed");
+		return ret;
+	}
+
+	debug(L"Read device state from TPM success, state: %d", *state);
 	return ret;
 }
 
@@ -909,6 +915,12 @@ EFI_STATUS tee_write_device_state_tpm2(UINT8 state)
 	EFI_STATUS ret = req->ret;
 
 	FreePool(req);
+	if (EFI_ERROR(ret)) {
+		efi_perror(ret, L"Write device state[%u] to TPM failed", state);
+		return ret;
+	}
+
+	debug(L"Write device state %d to TPM success", state);
 	return ret;
 }
 
@@ -929,6 +941,11 @@ EFI_STATUS tee_read_rollback_index_tpm2(size_t rollback_index_slot, uint64_t *ou
 
 	FreePool(req);
 
+	if (EFI_ERROR(ret)) {
+		efi_perror(ret, L"Read rollback index from TPM failed, slot: %d", rollback_index_slot);
+		return ret;
+	}
+
 	debug(L"Read rollback index from TPM success, slot: %d, index: 0x%llx", rollback_index_slot, *out_rollback_index);
 	return ret;
 }
@@ -947,6 +964,12 @@ EFI_STATUS tee_write_rollback_index_tpm2(size_t rollback_index_slot, uint64_t ro
 
 	EFI_STATUS ret = req->ret;
 	FreePool(req);
+
+	if (EFI_ERROR(ret)) {
+		efi_perror(ret, L"Write rollback index to TPM failed, slot: %d, index: 0x%llx",
+				rollback_index_slot, rollback_index);
+		return ret;
+	}
 
 	debug(L"Write rollback index to TPM success, slot: %d, index: 0x%llx", rollback_index_slot, rollback_index);
 	return ret;
