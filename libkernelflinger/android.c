@@ -941,6 +941,7 @@ const char *get_boot_reason_string(void)
 
 	ret = str_to_stra(reason8, reason16, len + 1);
 	if (EFI_ERROR(ret)) {
+		FreePool(reason8);
 		error(L"Non-ascii characters found");
 		return "unknown";
 	}
