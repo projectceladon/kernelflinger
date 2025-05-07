@@ -58,9 +58,6 @@
 #ifdef USE_FIRSTSTAGE_MOUNT
 #include "firststage_mount.h"
 #endif
-#ifdef USE_TRUSTY
-#include "trusty_common.h"
-#endif
 
 #include "uefi_utils.h"
 #include "libxbc.h"
@@ -479,13 +476,6 @@ static inline EFI_STATUS handover_jump(EFI_HANDLE image,
         return ret;
 
 boot:
-
-#ifdef USE_TRUSTY
-        /*
-         * Called after ExitBootService.
-         */
-        trusty_late_init();
-#endif
 
 #if __LP64__
         /* The 64-bit kernel entry is 512 bytes after the start. */
