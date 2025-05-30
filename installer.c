@@ -819,7 +819,7 @@ static void installer_boot(INTN argc, CHAR8 **argv)
 		return;
 	}
 
-	ret = android_image_start_buffer(g_parent_image, bootimage, NULL,
+	ret = android_image_start_buffer(g_parent_image, bootimage, NULL, NULL,
 					NORMAL_BOOT, BOOT_STATE_ORANGE, NULL,
 					NULL, NULL);
 	if (EFI_ERROR(ret))
