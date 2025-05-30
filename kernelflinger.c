@@ -1117,11 +1117,11 @@ static EFI_STATUS avb_load_verify_boot_image(
 }
 
 
-/* Use AVB load and verify vendor_boot image into RAM.
+/* Use AVB load and verify image into RAM.
  *
  * boot_target  - Boot image to load. Values supported are NORMAL_BOOT, RECOVERY,
  *                and ESP_BOOTIMAGE (for 'fastboot boot')
- * bootimage    - Returned allocated pointer value for the loaded vendor_boot image.
+ * bootimage    - Returned allocated pointer value for the loaded image.
  *
  * Return values:
  * EFI_INVALID_PARAMETER - Unsupported boot target type, key is not well-formed,
@@ -1129,32 +1129,35 @@ static EFI_STATUS avb_load_verify_boot_image(
  * EFI_ACCESS_DENIED     - Validation failed against OEM or embedded certificate,
  *                         boot image still usable
  */
-static EFI_STATUS avb_load_verify_vendor_boot_image(
+static EFI_STATUS avb_load_verify_image(
+		IN const char *label,
 		IN enum boot_target boot_target,
 		OUT VOID **bootimage)
 {
 	EFI_STATUS ret;
 	UINT8 boot_state;
 	AvbSlotVerifyData *slot_data;
+	CHAR16 *label16;
 
 	switch (boot_target) {
 	case NORMAL_BOOT:
 	case CHARGER:
 	case RECOVERY:
-		ret = android_image_load_partition_avb_ab("vendor_boot", bootimage, &boot_state, &slot_data);
+		ret = android_image_load_partition_avb_ab(label, bootimage, &boot_state, &slot_data);
 		break;
 	default:
 		*bootimage = NULL;
 		return EFI_INVALID_PARAMETER;
 	}
 
-	if (!EFI_ERROR(ret))
-		debug(L"vendor_boot image loaded");
+	if (EFI_ERROR(ret)) {
+		label16  = stra_to_str(label);
+		debug(L"%s image loaded failed", label16);
+		FreePool(label16);
+	}
 
 	return ret;
 }
-
-
 
 #define OEMVARS_MAGIC           "#OEMVARS\n"
 #define OEMVARS_MAGIC_SZ        9
@@ -1203,7 +1206,7 @@ static EFI_STATUS set_image_oemvars(VOID *bootimage)
 	return set_image_oemvars_nocheck(bootimage, NULL);
 }
 
-static EFI_STATUS load_image(VOID *bootimage, VOID *vendorbootimage, UINT8 boot_state,
+static EFI_STATUS load_image(VOID *bootimage, VOID *initbootimage, VOID *vendorbootimage, UINT8 boot_state,
 				enum boot_target boot_target,
 				VBDATA *vb_data
 				)
@@ -1295,7 +1298,7 @@ static EFI_STATUS load_image(VOID *bootimage, VOID *vendorbootimage, UINT8 boot_
 
 	debug(L"chainloading boot image, boot state is %s",
 			boot_state_to_string(boot_state));
-	ret = android_image_start_buffer(g_parent_image, bootimage, vendorbootimage,
+	ret = android_image_start_buffer(g_parent_image, bootimage, initbootimage, vendorbootimage,
 					boot_target, boot_state, NULL,
 					vb_data,
 					cmd_buf);
@@ -1393,7 +1396,7 @@ static VOID enter_fastboot_mode(UINT8 boot_state)
                                 if (EFI_ERROR(ret))
                                         efi_perror(ret, L"Fastboot mode fail to load slot data");
 				set_image_oemvars_nocheck(bootimage, NULL);
-				load_image(bootimage, NULL, BOOT_STATE_ORANGE, NORMAL_BOOT, slot_data);
+				load_image(bootimage, NULL, NULL, BOOT_STATE_ORANGE, NORMAL_BOOT, slot_data);
 			}
 			FreePool(bootimage);
 			bootimage = NULL;
@@ -1514,6 +1517,7 @@ EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table)
 	CHAR16 *target_path = NULL;
 	VOID *vendorbootimage = NULL;
 	VOID *bootimage = NULL;
+	VOID *initbootimage = NULL;
 	BOOLEAN oneshot = FALSE;
 	BOOLEAN lock_prompted = FALSE;
 #ifndef USE_SBL
@@ -1731,7 +1735,8 @@ EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table)
 	/* AVB check */
 	disable_slot_if_efi_loaded_slot_failed();
 	ret = avb_load_verify_boot_image(boot_target, target_path, &bootimage, oneshot, &boot_state, &vb_data);
-	avb_load_verify_vendor_boot_image(boot_target, &vendorbootimage);
+	avb_load_verify_image("vendor_boot", boot_target, &vendorbootimage);
+	avb_load_verify_image("init_boot", boot_target, &initbootimage);
 
 	set_boottime_stamp(TM_VERIFY_BOOT_DONE);
 
@@ -1761,7 +1766,7 @@ EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table)
 		break;
 	}
 
-	ret = load_image(bootimage, vendorbootimage, boot_state, boot_target,
+	ret = load_image(bootimage, initbootimage, vendorbootimage, boot_state, boot_target,
 			vb_data
 			);
 	if (EFI_ERROR(ret))

@@ -502,6 +502,7 @@ _Static_assert(sizeof(struct bootloader_control) ==
 EFI_STATUS android_image_start_buffer(
                 IN EFI_HANDLE parent_image,
                 IN VOID *bootimage,
+                IN VOID *initbootimage,
                 IN VOID *vendorbootimage,
                 IN enum boot_target boot_target,
                 IN UINT8 boot_state,

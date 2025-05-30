@@ -560,7 +560,7 @@ static struct boot_params *get_boot_param_hdr (VOID *bootimage)
     return (struct boot_params *)(bootimage + hdr_size);
 }
 
-static EFI_STATUS setup_ramdisk(UINT8 *bootimage, UINT8 *vendorbootimage, UINT8 *androidcmd)
+static EFI_STATUS setup_ramdisk(UINT8 *bootimage, UINT8 *initbootimage, UINT8 *vendorbootimage, UINT8 *androidcmd)
 {
         struct boot_img_hdr *aosp_header;
         struct boot_params *bp;
@@ -627,6 +627,9 @@ static EFI_STATUS setup_ramdisk(UINT8 *bootimage, UINT8 *vendorbootimage, UINT8 
         } else { // boot image v4
             struct vendor_boot_img_hdr_v4 *vendor_hdr = (struct vendor_boot_img_hdr_v4 *)vendorbootimage;
             struct boot_img_hdr_v4 *boot_hdr = (struct boot_img_hdr_v4 *)bootimage;
+
+	    if (initbootimage)
+		    boot_hdr = (struct boot_img_hdr_v4 *)initbootimage;
 
             UINT32 page_size = vendor_hdr->page_size;
             UINT32 vendor_ramdisk_offset = ALIGN(sizeof(struct vendor_boot_img_hdr_v4), page_size);
@@ -2125,6 +2128,7 @@ out_free:
 EFI_STATUS android_image_start_buffer(
                 IN EFI_HANDLE parent_image,
                 IN VOID *bootimage,
+                IN VOID *initbootimage,
                 IN VOID *vendorbootimage,
                 IN enum boot_target boot_target,
                 IN UINT8 boot_state,
@@ -2199,7 +2203,7 @@ EFI_STATUS android_image_start_buffer(
         use_ramdisk = !recovery_in_boot_partition() || boot_target == RECOVERY || boot_target == MEMORY;
 #endif
         if (use_ramdisk) {
-                ret = setup_ramdisk(bootimage, vendorbootimage, androidcmd);
+                ret = setup_ramdisk(bootimage, initbootimage, vendorbootimage, androidcmd);
                 if (EFI_ERROR(ret)) {
                         efi_perror(ret, L"setup_ramdisk");
                         if (androidcmd != NULL)
