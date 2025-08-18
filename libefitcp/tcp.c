@@ -423,7 +423,10 @@ EFI_STATUS tcp_start(UINT32 port, start_callback_t start_cb,
 	ret = uefi_call_wrapper(BS->LocateHandleBuffer, 5, ByProtocol,
 				&tcp_srv_binding_guid, NULL, &nb_handle, &handles);
 	if (EFI_ERROR(ret)) {
-		debug(L"Failed to locate TCP service binding protocol");
+		efi_perror(ret, L"Failed to locate TCP service binding protocol, ret = %u", ret);
+		uefi_call_wrapper(BS->Stall, 1, 5000000);
+		debug(L"Failed to locate TCP service binding protocol, ret = %u", ret);
+
 		return EFI_UNSUPPORTED;
 	}
 
