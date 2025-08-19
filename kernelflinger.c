@@ -1244,6 +1244,7 @@ EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table)
 	if (need_lock)
 		set_current_state(LOCKED);
 
+	set_current_state(UNLOCKED);
 	ret = set_device_security_info(NULL);
 	if (EFI_ERROR(ret)) {
 		efi_perror(ret, L"Failed to init security info, enter fastboot mode");
