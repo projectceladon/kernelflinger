@@ -628,8 +628,10 @@ static EFI_STATUS setup_ramdisk(UINT8 *bootimage, UINT8 *initbootimage, UINT8 *v
             struct vendor_boot_img_hdr_v4 *vendor_hdr = (struct vendor_boot_img_hdr_v4 *)vendorbootimage;
             struct boot_img_hdr_v4 *boot_hdr = (struct boot_img_hdr_v4 *)bootimage;
 
-	    if (initbootimage)
-		    boot_hdr = (struct boot_img_hdr_v4 *)initbootimage;
+            if (initbootimage) {
+                    boot_hdr = (struct boot_img_hdr_v4 *)initbootimage;
+                    bootimage = initbootimage;
+            }
 
             UINT32 page_size = vendor_hdr->page_size;
             UINT32 vendor_ramdisk_offset = ALIGN(sizeof(struct vendor_boot_img_hdr_v4), page_size);
